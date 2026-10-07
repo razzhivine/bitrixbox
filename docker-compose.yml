@@ -1,0 +1,129 @@
+# Все параметры берутся из .env, который создаёт команда `bitrix init`
+services:
+  # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто)
+  bitrix-setup:
+    image: alpine:3.20
+    environment:
+      DISTRIB_URL: ${DISTRIB_URL}
+    volumes:
+      - www:/var/www/html
+    command:
+      - sh
+      - -c
+      - |
+        if [ -e /var/www/html/bitrix ] || [ -e /var/www/html/bitrixsetup.php ]; then
+          echo "В www уже есть Битрикс, пропускаю скачивание"; exit 0
+        fi
+        echo "Скачиваю $$DISTRIB_URL ..."
+        case "$$DISTRIB_URL" in
+          *.php) wget -U 'Mozilla/5.0' -O /var/www/html/bitrixsetup.php "$$DISTRIB_URL" ;;
+          *)     wget -U 'Mozilla/5.0' -O- "$$DISTRIB_URL" | tar xz -C /var/www/html ;;
+        esac
+        chown -R 33:33 /var/www/html
+    restart: "no"
+
+  php:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+    depends_on:
+      bitrix-setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - www:/var/www/html
+      - ./local:/var/www/html/local
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-bitrix.ini:ro
+      - ./docker/php/msmtprc:/etc/msmtprc:ro
+
+  # Агенты и почтовые события Битрикса выполняются по расписанию, а не на хитах страниц.
+  # Включается командой `bitrix cron on` (она добавляет BX_CRONTAB_SUPPORT в dbconn.php).
+  cron:
+    build:
+      context: ./docker/php
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+    user: "33:33"
+    depends_on:
+      bitrix-setup:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+    volumes:
+      - www:/var/www/html
+      - ./local:/var/www/html/local
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/zz-bitrix.ini:ro
+      - ./docker/php/msmtprc:/etc/msmtprc:ro
+    command:
+      - sh
+      - -c
+      - |
+        f=/var/www/html/bitrix/modules/main/tools/cron_events.php
+        while true; do
+          [ -f "$$f" ] && php -f "$$f" >/dev/null 2>&1
+          sleep 60
+        done
+
+  # Ловушка почты: все письма сайта попадают сюда и наружу не уходят
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "127.0.0.1:${MAIL_PORT:-8025}:8025"
+
+  # Веб-интерфейс для базы данных (сервер: db)
+  adminer:
+    image: adminer
+    depends_on:
+      - db
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - php
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - www:/var/www/html
+      - ./local:/var/www/html/local
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/bitrix.inc:/etc/nginx/bitrix.inc:ro
+      - ./docker/nginx/https:/etc/nginx/https.d:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro
+
+  db:
+    image: ${DB_IMAGE:-mysql:8.4}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --sql-mode=
+      - --transaction-isolation=READ-COMMITTED
+      - --innodb-flush-log-at-trx-commit=2
+      - --innodb-buffer-pool-size=512M
+      - --max-allowed-packet=64M
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"   # только с этого компьютера, не из локальной сети
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p\"$$MYSQL_ROOT_PASSWORD\" --silent || mariadb-admin ping -h localhost -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  # Файлы Битрикса лежат в томе Docker, а не в папке на macOS: там файловая система
+  # чувствительна к регистру, без этого обновления Битрикса теряют файлы
+  www:
+  db_data:

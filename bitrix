@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Единая команда для локального Битрикса:  ./bitrix <команда>   (bitrix help — список)
+# Чтобы вызывать просто `bitrix` из любой папки:  ./bitrix install-cli
+set -euo pipefail
+
+# находим папку проекта, даже если вызвали через симлинк
+SRC="${BASH_SOURCE[0]}"
+while [ -L "$SRC" ]; do
+  DIR="$(cd -P "$(dirname "$SRC")" && pwd)"
+  SRC="$(readlink "$SRC")"
+  [[ $SRC != /* ]] && SRC="$DIR/$SRC"
+done
+ROOT="$(cd -P "$(dirname "$SRC")" && pwd)"
+cd "$ROOT"
+
+# Docker Desktop на macOS: запустить и дождаться, если он выключен
+ensure_docker() {
+  docker info >/dev/null 2>&1 && return 0
+  if [ "$(uname)" != Darwin ]; then echo "Docker не запущен. Запустите его и повторите."; exit 1; fi
+  echo "Docker не запущен — запускаю Docker Desktop..."
+  open -a Docker
+  for _ in $(seq 1 60); do docker info >/dev/null 2>&1 && return 0; sleep 3; done
+  echo "Docker не поднялся за 3 минуты"; exit 1
+}
+
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+
+case "$cmd" in
+  setup)
+    # всё с нуля: Docker -> окружение -> HTTPS
+    ensure_docker
+    bash scripts/init.sh
+    echo
+    read -r -p "Включить HTTPS? [Y/n]: " yn
+    [[ $yn =~ ^[nN]$ ]] || bash scripts/https.sh
+    cat <<'MSG'
+
+Дальше:
+  1. Откройте адрес из вывода выше и пройдите установщик Битрикса в браузере.
+  2. Когда он закончит:
+       bitrix cron on     агенты и почта Битрикса по расписанию, а не на хитах страниц
+       bitrix clean       очистить демо-данные
+MSG
+    ;;
+  init)     ensure_docker; exec bash scripts/init.sh "$@" ;;
+  https)    ensure_docker; exec bash scripts/https.sh "$@" ;;
+  clean)    ensure_docker; exec bash scripts/clean.sh "$@" ;;
+  cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
+  cache-clear)
+    ensure_docker
+    docker compose exec -T php php < scripts/php/cache.php 2>&1 | grep -a "Кеш"
+    ;;
+  sql)
+    ensure_docker
+    # без аргументов — консоль MySQL, с аргументом — выполнить запрос: bitrix sql "select count(*) from b_user"
+    if [ $# -gt 0 ]; then
+      docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" --table -e "$0" 2>&1 | grep -v "Using a password"' "$*" </dev/null
+    else
+      docker compose exec db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+    fi
+    ;;
+  php)      ensure_docker; docker compose exec -u www-data php php "$@" ;;
+  open)
+    . ./.env 2>/dev/null || true
+    case "${1:-site}" in
+      site)  if [ -f docker/nginx/https/server.conf ]; then url="https://localhost:${HTTPS_PORT:-8443}/"; else url="http://localhost:${HTTP_PORT:-8080}/"; fi ;;
+      admin) if [ -f docker/nginx/https/server.conf ]; then url="https://localhost:${HTTPS_PORT:-8443}/bitrix/admin/"; else url="http://localhost:${HTTP_PORT:-8080}/bitrix/admin/"; fi ;;
+      mail)  url="http://localhost:${MAIL_PORT:-8025}/" ;;
+      db)    url="http://localhost:${ADMINER_PORT:-8081}/?server=db&username=${DB_USER:-bitrix}&db=${DB_NAME:-bitrix}" ;;
+      *) echo "Используйте: bitrix open site | admin | mail | db"; exit 1 ;;
+    esac
+    echo "$url"; open "$url" 2>/dev/null || true
+    ;;
+  backup)   ensure_docker; exec bash scripts/backup.sh backup "$@" ;;
+  restore)  ensure_docker; exec bash scripts/backup.sh restore "$@" ;;
+  debug)
+    ensure_docker
+    docker compose exec -T -e MODE="${1:-status}" php php < scripts/php/debug.php
+    ;;
+  up)       ensure_docker; docker compose up -d --build "$@" ;;
+  down)     docker compose down "$@" ;;
+  restart)  docker compose restart "$@" ;;
+  status)   docker compose ps "$@" ;;
+  logs)     docker compose logs -f "$@" ;;
+  shell)    docker compose exec php bash ;;
+  reset)
+    echo "Это удалит контейнеры, базу, файлы сайта (том www) и .env. Папка local/ останется."
+    read -r -p "Введите yes для подтверждения: " yn
+    [ "$yn" = yes ] || { echo "Отменено"; exit 0; }
+    docker compose down -v
+    rm -rf .env
+    ;;
+  install-cli)
+    target="${1:-/opt/homebrew/bin}"
+    [ -d "$target" ] && [ -w "$target" ] || { echo "Нет доступа на запись в $target. Укажите другую папку из PATH: ./bitrix install-cli ~/.local/bin"; exit 1; }
+    ln -sf "$ROOT/bitrix" "$target/bitrix"
+    echo "Готово: команда 'bitrix' доступна из любой папки ($target/bitrix)"
+    ;;
+  help|-h|--help)
+    cat <<'HELP'
+Использование: bitrix <команда>
+
+  setup        всё с нуля одной командой: Docker, окружение, HTTPS
+  init         интерактивная настройка и запуск (редакция, БД, пароли, порты)
+  https        включить HTTPS (bitrix https --off — выключить)
+  clean        очистить демо-данные, остатки и модули (bitrix clean --dry-run — только план)
+  up / down    запустить / остановить контейнеры
+  cron         агенты и почта по расписанию: bitrix cron on | off | status
+  cache-clear  сбросить кеш Битрикса
+  sql          консоль MySQL; bitrix sql "запрос" — выполнить запрос
+  php          php в контейнере: bitrix php -v
+  open         открыть в браузере: site | admin | mail (письма) | db (Adminer)
+  backup       снимок окружения (база, файлы, local); bitrix backup list — список
+  restore      восстановить из снимка (текущее состояние сохранит заранее)
+  debug        отладка Битрикса: bitrix debug on | off | status
+  restart      перезапустить контейнеры
+  status       состояние контейнеров
+  logs         логи
+  shell        консоль в php-контейнере
+  reset        снести всё и начать заново (спросит подтверждение)
+  install-cli  сделать команду `bitrix` доступной из любой папки
+HELP
+    ;;
+  *) echo "Неизвестная команда: $cmd (список: bitrix help)"; exit 1 ;;
+esac

@@ -1,0 +1,7 @@
+www/
+.env
+backups/
+docker/nginx/certs/*
+!docker/nginx/certs/.gitkeep
+docker/nginx/https/*
+!docker/nginx/https/.gitkeep
