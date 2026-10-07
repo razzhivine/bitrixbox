@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Единая команда для локального Битрикса:  ./bitrix <команда>   (bitrix help — список)
-# Чтобы вызывать просто `bitrix` из любой папки:  ./bitrix install-cli
+# BitrixBox — единая команда для локального Битрикса:  ./bx <команда>   (bx help — список)
+# Чтобы вызывать просто `bx` из любой папки:  ./bx install-cli
 set -euo pipefail
 
 # находим папку проекта, даже если вызвали через симлинк
@@ -38,8 +38,8 @@ case "$cmd" in
 Дальше:
   1. Откройте адрес из вывода выше и пройдите установщик Битрикса в браузере.
   2. Когда он закончит:
-       bitrix cron on     агенты и почта Битрикса по расписанию, а не на хитах страниц
-       bitrix clean       очистить демо-данные
+       bx cron on     агенты и почта Битрикса по расписанию, а не на хитах страниц
+       bx clean       очистить демо-данные
 MSG
     ;;
   init)     ensure_docker; exec bash scripts/init.sh "$@" ;;
@@ -52,7 +52,7 @@ MSG
     ;;
   sql)
     ensure_docker
-    # без аргументов — консоль MySQL, с аргументом — выполнить запрос: bitrix sql "select count(*) from b_user"
+    # без аргументов — консоль MySQL, с аргументом — выполнить запрос: bx sql "select count(*) from b_user"
     if [ $# -gt 0 ]; then
       docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" --table -e "$0" 2>&1 | grep -v "Using a password"' "$*" </dev/null
     else
@@ -67,7 +67,7 @@ MSG
       admin) if [ -f docker/nginx/https/server.conf ]; then url="https://localhost:${HTTPS_PORT:-8443}/bitrix/admin/"; else url="http://localhost:${HTTP_PORT:-8080}/bitrix/admin/"; fi ;;
       mail)  url="http://localhost:${MAIL_PORT:-8025}/" ;;
       db)    url="http://localhost:${ADMINER_PORT:-8081}/?server=db&username=${DB_USER:-bitrix}&db=${DB_NAME:-bitrix}" ;;
-      *) echo "Используйте: bitrix open site | admin | mail | db"; exit 1 ;;
+      *) echo "Используйте: bx open site | admin | mail | db"; exit 1 ;;
     esac
     echo "$url"; open "$url" 2>/dev/null || true
     ;;
@@ -92,34 +92,34 @@ MSG
     ;;
   install-cli)
     target="${1:-/opt/homebrew/bin}"
-    [ -d "$target" ] && [ -w "$target" ] || { echo "Нет доступа на запись в $target. Укажите другую папку из PATH: ./bitrix install-cli ~/.local/bin"; exit 1; }
-    ln -sf "$ROOT/bitrix" "$target/bitrix"
-    echo "Готово: команда 'bitrix' доступна из любой папки ($target/bitrix)"
+    [ -d "$target" ] && [ -w "$target" ] || { echo "Нет доступа на запись в $target. Укажите другую папку из PATH: ./bx install-cli ~/.local/bin"; exit 1; }
+    ln -sf "$ROOT/bx" "$target/bx"
+    echo "Готово: команда 'bx' доступна из любой папки ($target/bx)"
     ;;
   help|-h|--help)
     cat <<'HELP'
-Использование: bitrix <команда>
+Использование: bx <команда>
 
   setup        всё с нуля одной командой: Docker, окружение, HTTPS
   init         интерактивная настройка и запуск (редакция, БД, пароли, порты)
-  https        включить HTTPS (bitrix https --off — выключить)
-  clean        очистить демо-данные, остатки и модули (bitrix clean --dry-run — только план)
+  https        включить HTTPS (bx https --off — выключить)
+  clean        очистить демо-данные, остатки и модули (bx clean --dry-run — только план)
   up / down    запустить / остановить контейнеры
-  cron         агенты и почта по расписанию: bitrix cron on | off | status
+  cron         агенты и почта по расписанию: bx cron on | off | status
   cache-clear  сбросить кеш Битрикса
-  sql          консоль MySQL; bitrix sql "запрос" — выполнить запрос
-  php          php в контейнере: bitrix php -v
+  sql          консоль MySQL; bx sql "запрос" — выполнить запрос
+  php          php в контейнере: bx php -v
   open         открыть в браузере: site | admin | mail (письма) | db (Adminer)
-  backup       снимок окружения (база, файлы, local); bitrix backup list — список
+  backup       снимок окружения (база, файлы, local); bx backup list — список
   restore      восстановить из снимка (текущее состояние сохранит заранее)
-  debug        отладка Битрикса: bitrix debug on | off | status
+  debug        отладка Битрикса: bx debug on | off | status
   restart      перезапустить контейнеры
   status       состояние контейнеров
   logs         логи
   shell        консоль в php-контейнере
   reset        снести всё и начать заново (спросит подтверждение)
-  install-cli  сделать команду `bitrix` доступной из любой папки
+  install-cli  сделать команду `bx` доступной из любой папки
 HELP
     ;;
-  *) echo "Неизвестная команда: $cmd (список: bitrix help)"; exit 1 ;;
+  *) echo "Неизвестная команда: $cmd (список: bx help)"; exit 1 ;;
 esac

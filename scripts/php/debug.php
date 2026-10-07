@@ -1,6 +1,6 @@
 <?php
 // Режим отладки Битрикса: подробный вывод ошибок и лог исключений.
-// Запускается командой `bitrix debug on|off|status` внутри php-контейнера (MODE=on|off|status).
+// Запускается командой `bx debug on|off|status` внутри php-контейнера (MODE=on|off|status).
 // Настройки пишутся штатным API Configuration в bitrix/.settings.php (секция exception_handling).
 
 $_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
@@ -40,4 +40,4 @@ echo 'Лог исключений: ' . ($logPath ? "включён → $logPath"
 if ($logPath && file_exists("{$_SERVER['DOCUMENT_ROOT']}/$logPath")) {
     printf("Размер лога: %d байт\n", filesize("{$_SERVER['DOCUMENT_ROOT']}/$logPath"));
 }
-if ($debug) echo "На рабочем сайте так оставлять нельзя: bitrix debug off\n";
+if ($debug) echo "На рабочем сайте так оставлять нельзя: bx debug off\n";

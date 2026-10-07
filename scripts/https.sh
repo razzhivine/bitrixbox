@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Включает HTTPS для локального сайта.
-#   bitrix https          спросит порт, домены и редирект, выпустит сертификат и перезапустит nginx
-#   bitrix https --off    выключить HTTPS (вернуть только http)
+#   bx https          спросит порт, домены и редирект, выпустит сертификат и перезапустит nginx
+#   bx https --off    выключить HTTPS (вернуть только http)
 #
 # Сертификат: если установлен mkcert — доверенный браузеру (без предупреждений),
 # иначе самоподписанный через openssl (браузер предупредит, это нормально для разработки).
@@ -27,7 +27,7 @@ if [ "${1:-}" = "--off" ]; then
   exit 0
 fi
 
-docker compose ps --status running --services </dev/null 2>/dev/null | grep -qx nginx || { echo "Контейнеры не запущены: bitrix up"; exit 1; }
+docker compose ps --status running --services </dev/null 2>/dev/null | grep -qx nginx || { echo "Контейнеры не запущены: bx up"; exit 1; }
 
 HTTP_PORT=$(grep '^HTTP_PORT=' .env 2>/dev/null | cut -d= -f2 || true); HTTP_PORT=${HTTP_PORT:-8080}
 
@@ -53,7 +53,7 @@ if command -v mkcert >/dev/null 2>&1; then
   TRUSTED=1
 else
   echo "mkcert не найден — делаю самоподписанный сертификат (браузер покажет предупреждение)."
-  echo "Чтобы было без предупреждений:  brew install mkcert  и снова выполнить bitrix https."
+  echo "Чтобы было без предупреждений:  brew install mkcert  и снова выполнить bx https."
   CNF=$(mktemp)
   {
     echo "[req]"; echo "distinguished_name=dn"; echo "x509_extensions=ext"; echo "prompt=no"
@@ -72,7 +72,7 @@ fi
 chmod 600 "$CERTS/key.pem"
 
 cat > "$CONF/server.conf" <<EOF
-# создано командой bitrix https
+# создано командой bx https
 server {
     listen 443 ssl;
     server_name _;

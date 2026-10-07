@@ -1,4 +1,4 @@
-# Все параметры берутся из .env, который создаёт команда `bitrix init`
+# Все параметры берутся из .env, который создаёт команда `bx init`
 services:
   # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто)
   bitrix-setup:
@@ -39,7 +39,7 @@ services:
       - ./docker/php/msmtprc:/etc/msmtprc:ro
 
   # Агенты и почтовые события Битрикса выполняются по расписанию, а не на хитах страниц.
-  # Включается командой `bitrix cron on` (она добавляет BX_CRONTAB_SUPPORT в dbconn.php).
+  # Включается командой `bx cron on` (она добавляет BX_CRONTAB_SUPPORT в dbconn.php).
   cron:
     build:
       context: ./docker/php

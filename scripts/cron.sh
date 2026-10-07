@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Агенты и почтовые события Битрикса: на хитах страниц или по расписанию (контейнер cron).
-#   bitrix cron on       выполнять по расписанию (раз в минуту), на хитах не выполнять
-#   bitrix cron off      вернуть выполнение на хитах
-#   bitrix cron status   показать режим и состояние
+#   bx cron on       выполнять по расписанию (раз в минуту), на хитах не выполнять
+#   bx cron off      вернуть выполнение на хитах
+#   bx cron status   показать режим и состояние
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,5 +33,5 @@ case "${1:-status}" in
       && echo "Контейнер cron: работает" || echo "Контейнер cron: не запущен"
     docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" -N -e "select concat(\"Агентов: \", count(*), \", последний запуск: \", ifnull(max(LAST_EXEC), \"никогда\")) from b_agent where ACTIVE=\"Y\"" 2>/dev/null' </dev/null
     ;;
-  *) echo "Используйте: bitrix cron on | off | status"; exit 1 ;;
+  *) echo "Используйте: bx cron on | off | status"; exit 1 ;;
 esac

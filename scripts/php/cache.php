@@ -1,5 +1,5 @@
 <?php
-// Полный сброс кеша Битрикса через API. Запускается командой `bitrix cache-clear`.
+// Полный сброс кеша Битрикса через API. Запускается командой `bx cache-clear`.
 
 $_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
 define('NO_KEEP_STATISTIC', true);

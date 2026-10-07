@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Снимки окружения: база + файлы сайта (том www) + папка local + .env.
-#   bitrix backup [метка]        создать снимок в backups/snapshot-<дата>[-метка]/
-#   bitrix backup list           показать снимки
-#   bitrix restore [снимок]      восстановить (без параметра — выбор из списка)
+#   bx backup [метка]        создать снимок в backups/snapshot-<дата>[-метка]/
+#   bx backup list           показать снимки
+#   bx restore [снимок]      восстановить (без параметра — выбор из списка)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -12,7 +12,7 @@ EXCLUDES=(--exclude=./bitrix/cache --exclude=./bitrix/managed_cache --exclude=./
 need_running() {
   docker compose ps --status running --services </dev/null 2>/dev/null | grep -qx php \
     && docker compose ps --status running --services </dev/null 2>/dev/null | grep -qx db \
-    || { echo "Контейнеры не запущены: bitrix up"; exit 1; }
+    || { echo "Контейнеры не запущены: bx up"; exit 1; }
 }
 
 human() { du -sh "$1" 2>/dev/null | cut -f1; }
@@ -54,11 +54,11 @@ pick_snapshot() { # pick_snapshot [имя|путь] -> $SNAP
     if [ -d "$arg" ]; then SNAP="${arg%/}"
     elif [ -d "$DIR/$arg" ]; then SNAP="$DIR/$arg"
     elif [ -d "$DIR/snapshot-$arg" ]; then SNAP="$DIR/snapshot-$arg"
-    else echo "Снимок не найден: $arg (список: bitrix backup list)"; exit 1; fi
+    else echo "Снимок не найден: $arg (список: bx backup list)"; exit 1; fi
     return
   fi
   local snaps=(); while IFS= read -r l; do [ -n "$l" ] && snaps+=("$l"); done < <(list_snapshots)
-  [ ${#snaps[@]} -gt 0 ] || { echo "Снимков нет. Создайте: bitrix backup"; exit 1; }
+  [ ${#snaps[@]} -gt 0 ] || { echo "Снимков нет. Создайте: bx backup"; exit 1; }
   echo "Снимки:"
   local i=1; for s in "${snaps[@]}"; do printf "  %d) %s  (%s)\n" "$i" "$(basename "$s")" "$(human "$s")"; i=$((i+1)); done
   local n
@@ -119,5 +119,5 @@ case "${1:-}" in
   backup)  shift
            if [ "${1:-}" = list ]; then list_snapshots | while read -r s; do printf "%s  (%s)\n" "$(basename "$s")" "$(human "$s")"; done
            else do_backup "${1:-}"; fi ;;
-  *)       echo "Используйте: bitrix backup [метка|list]  /  bitrix restore [снимок]"; exit 1 ;;
+  *)       echo "Используйте: bx backup [метка|list]  /  bx restore [снимок]"; exit 1 ;;
 esac

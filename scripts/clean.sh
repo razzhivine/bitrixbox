@@ -12,17 +12,17 @@
 #   - по отдельному вопросу: файлы неустановленных модулей на диске (с архивом перед удалением)
 # Остаются: служебные типы инфоблоков (rest_entity), пользователи и сам сайт (s1).
 #
-#   bitrix clean             показать план, спросить подтверждение, сделать бэкап БД и удалить
-#   bitrix clean --dry-run   только показать, что будет удалено
-#   bitrix clean --yes       без вопроса подтверждения
-#   bitrix clean --no-pages  не трогать страницы и шаблоны
-#   bitrix clean --no-content  не трогать инфоблоки
-#   bitrix clean --keep-iblocks  удалить только элементы/разделы, инфоблоки и типы оставить
-#   bitrix clean --iblock 2,3   только указанные инфоблоки (ID)
-#   bitrix clean --no-modules   не спрашивать про модули (так же при --yes)
-#   bitrix clean --modules-only только модули, без демо-данных
-#   bitrix clean --no-leftovers не чистить остатки удалённых модулей
-#   bitrix clean --module-files удалить файлы неустановленных модулей без вопроса
+#   bx clean             показать план, спросить подтверждение, сделать бэкап БД и удалить
+#   bx clean --dry-run   только показать, что будет удалено
+#   bx clean --yes       без вопроса подтверждения
+#   bx clean --no-pages  не трогать страницы и шаблоны
+#   bx clean --no-content  не трогать инфоблоки
+#   bx clean --keep-iblocks  удалить только элементы/разделы, инфоблоки и типы оставить
+#   bx clean --iblock 2,3   только указанные инфоблоки (ID)
+#   bx clean --no-modules   не спрашивать про модули (так же при --yes)
+#   bx clean --modules-only только модули, без демо-данных
+#   bx clean --no-leftovers не чистить остатки удалённых модулей
+#   bx clean --module-files удалить файлы неустановленных модулей без вопроса
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -45,7 +45,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-docker compose ps --status running --services 2>/dev/null </dev/null | grep -qx php || { echo "Контейнеры не запущены: bitrix up"; exit 1; }
+docker compose ps --status running --services 2>/dev/null </dev/null | grep -qx php || { echo "Контейнеры не запущены: bx up"; exit 1; }
 docker compose exec -T php test -f /var/www/html/bitrix/modules/main/include/prolog_before.php </dev/null \
   || { echo "Битрикс ещё не установлен — сначала пройдите установщик"; exit 1; }
 

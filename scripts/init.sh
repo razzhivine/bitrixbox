@@ -110,7 +110,7 @@ echo "Настройки сохранены в .env. Запускаю Docker (п
 PROJECT=$(docker compose config --format json </dev/null 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin)['name'])" 2>/dev/null || basename "$PWD")
 if docker volume ls -q --filter "label=com.docker.compose.project=$PROJECT" </dev/null | grep -q '_db_data$'; then
   echo "ВНИМАНИЕ: том с базой уже существует. Новые имя/пароли/версия БД к нему не применятся."
-  echo "Чтобы начать с чистой базы: bitrix reset"
+  echo "Чтобы начать с чистой базы: bx reset"
 fi
 docker compose up -d --build
 
@@ -125,6 +125,6 @@ cat <<EOF
   Пароль:       (тот, что вы ввели)
 
 Инструменты для разработки:
-  Почта сайта (все письма попадают сюда): http://localhost:$MAIL_PORT   (bitrix open mail)
-  База данных (Adminer):                  http://localhost:$ADMINER_PORT   (bitrix open db)
+  Почта сайта (все письма попадают сюда): http://localhost:$MAIL_PORT   (bx open mail)
+  База данных (Adminer):                  http://localhost:$ADMINER_PORT   (bx open db)
 EOF
