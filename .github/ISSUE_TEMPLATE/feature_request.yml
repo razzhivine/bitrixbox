@@ -1,0 +1,21 @@
+name: Идея
+description: Предложить новую возможность или улучшение
+title: "[Идея] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую задачу хотите решить
+      description: Опишите ситуацию, а не только решение.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Как это могло бы работать
+      placeholder: "bx something --flag ..."
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Что делаете сейчас вместо этого

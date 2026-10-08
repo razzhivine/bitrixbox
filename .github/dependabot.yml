@@ -1,0 +1,23 @@
+# Автоматические предложения обновлений: версии GitHub Actions и образов Docker.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "docker"
+
+  - package-ecosystem: docker
+    directory: /docker/php
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "docker"

@@ -1,0 +1,43 @@
+name: Ошибка
+description: Что-то работает не так, как описано
+title: "[Ошибка] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Не публикуйте пароли, содержимое `.env` и ключи. Перед отправкой посмотрите вывод `bx doctor`.
+  - type: input
+    id: version
+    attributes:
+      label: Версия BitrixBox
+      description: Вывод `bx version`
+      placeholder: BitrixBox 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: ОС и Docker
+      placeholder: macOS 15, Docker Desktop 29 / Ubuntu 24.04, Docker 28
+    validations:
+      required: true
+  - type: input
+    id: config
+    attributes:
+      label: Редакция, база данных, PHP
+      placeholder: standard, mysql-8.4, 8.3
+  - type: textarea
+    id: command
+    attributes:
+      label: Какая команда и что ожидалось
+      placeholder: "bx clean --yes --all-modules ... ожидал, что ..."
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Что произошло (вывод команды и `bx doctor`)
+      render: text
+    validations:
+      required: true

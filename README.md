@@ -1,5 +1,10 @@
 # BitrixBox
 
+[![CI](https://github.com/razzhivine/bitrixbox/actions/workflows/ci.yml/badge.svg)](https://github.com/razzhivine/bitrixbox/actions/workflows/ci.yml)
+[![Матрица](https://github.com/razzhivine/bitrixbox/actions/workflows/matrix.yml/badge.svg)](https://github.com/razzhivine/bitrixbox/actions/workflows/matrix.yml)
+[![Релиз](https://img.shields.io/github/v/release/razzhivine/bitrixbox)](https://github.com/razzhivine/bitrixbox/releases)
+[![Лицензия: MIT](https://img.shields.io/github/license/razzhivine/bitrixbox)](LICENSE)
+
 Локальный 1С-Битрикс в Docker с одной командой `bx`: ставит окружение (PHP, nginx, MySQL/MariaDB), включает HTTPS,
 проходит мастер установки Битрикса без браузера, убирает демо-данные, делает снимки и откатывает их.
 
@@ -189,3 +194,9 @@ backups/                снимки `bx backup` (в git не попадают)
 
 [MIT](LICENSE). Битрикс (1С-Битрикс: Управление сайтом) — продукт 1С-Битрикс и распространяется по его собственной лицензии;
 этот проект только ставит и обслуживает его в Docker и не включает файлы продукта.
+
+## Участие и безопасность
+
+Идеи и ошибки — через [issues](https://github.com/razzhivine/bitrixbox/issues/new/choose), правки — pull request'ами,
+правила и проверки перед отправкой — в [CONTRIBUTING.md](CONTRIBUTING.md). Об уязвимостях пишите закрыто, как описано в
+[SECURITY.md](SECURITY.md). Раз в неделю GitHub Actions прогоняет матрицу редакций и баз данных (значок «Матрица» выше).

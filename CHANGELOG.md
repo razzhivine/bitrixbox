@@ -2,6 +2,13 @@
 
 Формат: [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/), версии: [SemVer](https://semver.org/lang/ru/).
 
+## [Не выпущено]
+
+### Добавлено
+- Матрица проверок в GitHub Actions (редакции × база данных × PHP) раз в неделю и вручную; сквозной тест `tests/e2e.sh`.
+- Оформление для сообщества: `CONTRIBUTING.md`, `SECURITY.md`, шаблоны issue и pull request, Dependabot.
+- Значки CI, релиза и лицензии в README.
+
 ## [1.0.0] — 2026-10-08
 
 Первый стабильный релиз.

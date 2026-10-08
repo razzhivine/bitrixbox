@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Уязвимость (не публичный issue)
+    url: https://github.com/razzhivine/bitrixbox/security/advisories/new
+    about: Сообщите закрыто через Report a vulnerability.

@@ -1,0 +1,34 @@
+name: Матрица редакций и баз данных
+
+# Полный цикл (установка, очистка, диагностика, вход, откат) на всех поддерживаемых сочетаниях.
+# Запускается раз в неделю и вручную (Actions → Матрица → Run workflow).
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    name: ${{ matrix.edition }} / ${{ matrix.db }} / PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { edition: start,          db: mysql-8.4,     php: "8.3" }
+          - { edition: standard,       db: mysql-8.4,     php: "8.3" }
+          - { edition: small_business, db: mysql-8.4,     php: "8.3" }
+          - { edition: business,       db: mysql-8.4,     php: "8.3" }
+          - { edition: standard,       db: mysql-8.0,     php: "8.3" }
+          - { edition: standard,       db: mariadb-11.4,  php: "8.3" }
+          - { edition: standard,       db: mariadb-10.11, php: "8.2" }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Сквозная проверка
+        env:
+          EDITION: ${{ matrix.edition }}
+          DB: ${{ matrix.db }}
+          PHP: ${{ matrix.php }}
+        run: bash tests/e2e.sh
