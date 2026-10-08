@@ -29,7 +29,13 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DRY=0; YES=0; IBLOCKS=""; PAGES=1; CONTENT=1; KEEP=0; MODULES=1; LEFT=1; FILES=ask; ALLMOD=0; DROPT=0
-PROTECTED=" main security fileman ui "  # дублируется в scripts/php/modules.php
+PROTECTED=" main security fileman ui sprint.migration "  # дублируется в scripts/php/modules.php
+# Обязательные модули проекта (local/bx-modules.txt) тоже не удаляются и их файлы остаются на диске
+REQUIRED=""
+if [ -f local/bx-modules.txt ]; then
+  REQUIRED=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' local/bx-modules.txt | grep -v '^$' | sort -u | tr '\n' ' ')
+  [ -n "$REQUIRED" ] && PROTECTED="$PROTECTED$REQUIRED "
+fi
 while [ $# -gt 0 ]; do
   case $1 in
     --dry-run) DRY=1 ;;
@@ -65,7 +71,7 @@ if [ "$DEMO" = 1 ]; then
 fi
 
 left_php() { # left_php <DRY_RUN 0|1> <MODULE_FILES 0|1> [PRINT_PATHS]
-  docker compose exec -T -e DRY_RUN="$1" -e LEFTOVERS="$LEFT" -e MODULE_FILES="$2" -e PRINT_PATHS="${3:-0}" -e STAGE=leftovers php php < scripts/php/cleanup.php
+  docker compose exec -T -e DRY_RUN="$1" -e LEFTOVERS="$LEFT" -e MODULE_FILES="$2" -e PRINT_PATHS="${3:-0}" -e KEEP_MODULES="$(echo "$PROTECTED" | xargs | tr ' ' ',')" -e STAGE=leftovers php php < scripts/php/cleanup.php
 }
 
 module_php() { # module_php <MODE> [MODULE] [SAVEDATA]

@@ -90,3 +90,14 @@ jobs:
 
       - name: Установка, очистка, диагностика, вход и откат (tests/e2e.sh)
         run: bash tests/e2e.sh
+
+  e2e-migrate:
+    name: Миграции структуры (sprint.migration)
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Чистый Битрикс, обязательные модули, bx migrate up/down (tests/migrate.sh)
+        run: bash tests/migrate.sh

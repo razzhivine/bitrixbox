@@ -2,12 +2,14 @@
 # Сквозная проверка: установка с нуля -> очистка -> диагностика -> вход администратора -> откат очистки.
 # Запускается из корня проекта (в CI и локально; перед этим окружение должно быть пустым):
 #   EDITION=standard DB=mysql-8.4 PHP=8.3 bash tests/e2e.sh
+# Порты можно сменить: HTTP_PORT, HTTPS_PORT, DB_PORT, MAIL_PORT, ADMINER_PORT (если стандартные заняты)
 # EDITION: start|standard|small_business|business, DB: mysql-8.4|mysql-8.0|mariadb-11.4|mariadb-10.11, PHP: 8.3|8.2
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 EDITION=${EDITION:-standard}; DB=${DB:-mysql-8.4}; PHPV=${PHP:-8.3}
 HTTP_PORT=${HTTP_PORT:-8080}; HTTPS_PORT=${HTTPS_PORT:-8443}
+DB_PORT=${DB_PORT:-3306}; MAIL_PORT=${MAIL_PORT:-8025}; ADMINER_PORT=${ADMINER_PORT:-8081}
 LOG=$(mktemp)
 FAILS=0
 ok()   { echo "  [ok]   $1"; }
@@ -15,7 +17,7 @@ fail() { echo "  [FAIL] $1"; FAILS=$((FAILS+1)); }
 
 echo "== $EDITION / $DB / PHP $PHPV =="
 if ./bx setup --defaults --edition "$EDITION" --db "$DB" --php "$PHPV" --install --clean \
-     --http-port "$HTTP_PORT" --https-port "$HTTPS_PORT" 2>&1 | tee "$LOG"; then ok "setup --install --clean"; else fail "setup --install --clean"; fi
+     --http-port "$HTTP_PORT" --https-port "$HTTPS_PORT" --db-port "$DB_PORT" --mail-port "$MAIL_PORT" --adminer-port "$ADMINER_PORT" 2>&1 | tee "$LOG"; then ok "setup --install --clean"; else fail "setup --install --clean"; fi
 
 mods=$(./bx sql "select group_concat(ID order by ID) from b_module" 2>/dev/null | sed -n 4p | tr -d '| ')
 [ "$mods" = "fileman,main,security,ui" ] && ok "после очистки остались модули: $mods" || fail "модули после очистки: ${mods:-пусто}"

@@ -25,6 +25,7 @@ shellcheck -x -S warning bx scripts/*.sh tests/*.sh      # стиль и тип�
 for f in bx scripts/*.sh tests/*.sh; do bash -n "$f"; done
 for f in scripts/php/*.php; do php -l "$f"; done        # синтаксис PHP (можно через docker run php:8.3-cli)
 bash tests/e2e.sh                                       # полный цикл на пустом окружении, около 3–5 минут
+bash tests/migrate.sh                                   # миграции на пустом окружении
 ```
 
 Сквозной тест ставит Битрикс с нуля, поэтому запускайте его в чистой копии проекта (или после `bx reset`), с другими

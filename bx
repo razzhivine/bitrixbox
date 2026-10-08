@@ -110,6 +110,8 @@ MSG
   clean)    ensure_docker; exec bash scripts/clean.sh "$@" ;;
   install)  ensure_docker; run_wizard "$@" ;;
   passwords) ensure_docker; exec bash scripts/passwords.sh "$@" ;;
+  modules)  ensure_docker; exec bash scripts/modules.sh "$@" ;;
+  migrate)  ensure_docker; exec bash scripts/migrate.sh "$@" ;;
   update)   ensure_docker; exec bash scripts/update.sh "$@" ;;
   doctor)   exec bash scripts/doctor.sh ;;
   cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
@@ -182,6 +184,8 @@ MSG
   backup       снимок окружения (база, файлы, local); bx backup list — список
   restore      восстановить из снимка (текущее состояние сохранит заранее)
   passwords    bx passwords rotate — сменить пароли БД (root и пользователь) везде: БД, .env, Битрикс
+  modules      модули: bx modules [all | install <id…> | uninstall <id…> | required | sync]
+  migrate      миграции структуры (sprint.migration): bx migrate install | add | ls | up | down
   update       обновить Битрикс (bx update --check — только показать, что доступно)
   doctor       диагностика окружения: Docker, порты, сайт, HTTPS, Битрикс, диск
   debug        отладка Битрикса: bx debug on | off | status

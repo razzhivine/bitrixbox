@@ -15,6 +15,7 @@
 //       LEFTOVERS=0        пропустить блок остатков
 //       MODULE_FILES=1     добавить удаление файлов неустановленных модулей
 //       FILES_ONLY=a,b     ограничить файлы этими модулями (для проверок)
+//       KEEP_MODULES=a,b   модули, файлы и настройки которых не трогать (защищённые и обязательные для проекта)
 //       PRINT_PATHS=1      дополнительно печатать пути строками FILE:<путь> (для архива)
 
 $_SERVER['DOCUMENT_ROOT'] = '/var/www/html';
@@ -152,7 +153,8 @@ if ($stage === 'demo') {
     foreach (scandir("$root/bitrix/modules") as $m) {
         if ($m[0] !== '.' && is_file("$root/bitrix/modules/$m/install/index.php")) $onDisk[] = $m;
     }
-    $removed = array_values(array_diff($onDisk, $installed));
+    $keep = array_filter(explode(',', (string)getenv('KEEP_MODULES')));   // защищённые и обязательные для проекта
+$removed = array_values(array_diff($onDisk, $installed, $keep));
     echo 'Неустановленные модули на диске: ' . ($removed ? implode(', ', $removed) : 'нет') . "\n";
 
     function dirSizeKb(string $path): int
