@@ -37,11 +37,24 @@
 
 Чтобы писать `bx` из любой папки: `./bx install-cli`.
 
+### Регистрация продукта
+
+По умолчанию мастер проходится **без регистрации**: ваши данные никуда не отправляются. Чтобы зарегистрировать копию
+(имя, фамилия и почта уходят на сервер 1С-Битрикс), укажите их явно, заглушки не подставляются:
+
+```bash
+./bx setup --defaults --edition standard --install --register \
+  --reg-name Иван --reg-surname Петров --reg-email ivan@example.com
+```
+
+То же для отдельной команды: `./bx install --register --reg-name ... --reg-surname ... --reg-email ...`.
+
 ### Флаги неинтерактивной настройки
 
 `--defaults` · `--edition web|start|standard|small_business|business` · `--db mysql-8.4|mysql-8.0|mariadb-11.4|mariadb-10.11` ·
 `--php 8.3|8.2` · `--project имя` · `--http-port` `--https-port` `--db-port` `--mail-port` `--adminer-port` ·
 `--https` / `--no-https` · `--redirect` · `--install` · `--clean` · `--solution corp_furniture|corp_services` ·
+`--register --reg-name --reg-surname --reg-email` (регистрация копии на сервере 1С-Битрикс, см. ниже) ·
 `--demo yes|no` (с `no` Битрикс не копирует страницы сайта, и сайт остаётся недоустановленным).
 
 ## Команды

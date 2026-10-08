@@ -58,7 +58,8 @@ case "$cmd" in
       case $1 in
         --install)  DO_INSTALL=1 ;;
         --clean)    DO_CLEAN=1 ;;
-        --admin-login|--admin-password|--admin-email|--admin-name|--admin-surname|--solution|--demo)
+        --register) WIZ_ARGS+=(--register) ;;
+        --reg-name|--reg-surname|--reg-email|--admin-login|--admin-password|--admin-email|--admin-name|--admin-surname|--solution|--demo)
                     WIZ_ARGS+=("$1" "${2:?у $1 нужно значение}"); shift ;;
         --https)    HTTPS_MODE=yes ;;
         --no-https) HTTPS_MODE=no ;;
@@ -164,7 +165,7 @@ MSG
 
   setup        всё с нуля одной командой: Docker, окружение, HTTPS
   init         интерактивная настройка и запуск (редакция, БД, пароли, порты)
-  install      пройти мастер установки Битрикса без браузера (--admin-login, --admin-password, --solution, --demo yes|no)
+  install      пройти мастер установки Битрикса без браузера (--admin-login, --admin-password, --solution, --register --reg-name --reg-surname --reg-email)
   https        включить HTTPS (bx https --off — выключить)
   clean        очистить демо-данные, остатки и модули (bx clean --dry-run — только план)
   up / down    запустить / остановить контейнеры

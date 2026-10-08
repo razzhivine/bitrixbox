@@ -171,7 +171,14 @@ class Wizard:
         elif sid == "agreement":
             data["__wiz_agree_license"] = "Y"
         elif sid == "check_license_key":
-            data["__wiz_lic_key_variant"] = ""  # без регистрации продукта: личные данные никуда не уходят
+            if a.register:
+                # регистрация копии на сервере 1С-Битрикс: туда уходят имя, фамилия и почта
+                data.update({
+                    "__wiz_lic_key_variant": "Y",
+                    "__wiz_user_name": a.reg_name, "__wiz_user_surname": a.reg_surname, "__wiz_email": a.reg_email,
+                })
+            else:
+                data["__wiz_lic_key_variant"] = ""  # без регистрации: личные данные никуда не уходят
         elif sid == "create_database":
             data.update({
                 "__wiz_host": a.db_host, "__wiz_create_user": "N", "__wiz_user": a.db_user,
@@ -189,6 +196,8 @@ class Wizard:
             data["__wiz_installDemoData"] = "Y" if a.demo == "yes" else "N"
         elif sid == "finish":
             return post_form(data)
+        elif not any(f[0] != "input" or f[1] in ("text", "password", "checkbox", "radio", "file") for f in form["fields"]):
+            pass  # информационный шаг без полей (например, показ полученного ключа): просто «Далее»
         else:
             raise SystemExit(
                 f"Неизвестный шаг мастера «{sid}». Дальше пройдите установщик в браузере: {self.base}/\n"
@@ -226,18 +235,32 @@ def main():
     ap.add_argument("--admin-email", default="admin@example.com")
     ap.add_argument("--admin-name", default="Admin")
     ap.add_argument("--admin-surname", default="Admin")
+    ap.add_argument("--register", action="store_true",
+                    help="зарегистрировать копию на сервере 1С-Битрикс (отправляет имя, фамилию и почту; нужны --reg-*)")
+    ap.add_argument("--reg-name", default="")
+    ap.add_argument("--reg-surname", default="")
+    ap.add_argument("--reg-email", default="")
     ap.add_argument("--solution", choices=sorted(SOLUTIONS), default="corp_furniture")
     ap.add_argument("--demo", choices=["yes", "no"], default="yes",
                     help="ставить демо-данные решения (по умолчанию да). С «no» Битрикс не копирует страницы сайта "
                          "и корневой index.php остаётся запуском мастера — сайт получается недоустановленным")
     args = ap.parse_args()
 
+    if args.register:
+        missing = [n for n, v in (("--reg-name", args.reg_name), ("--reg-surname", args.reg_surname),
+                                  ("--reg-email", args.reg_email)) if not v.strip()]
+        if missing:
+            sys.exit("Для --register нужны ваши настоящие данные: " + ", ".join(missing)
+                     + ".\nОни отправляются на сервер 1С-Битрикс при регистрации копии; заглушки подставлять не буду.")
+        if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", args.reg_email):
+            sys.exit(f"--reg-email: «{args.reg_email}» не похоже на адрес почты")
+
     generated = False
     if not args.admin_password:
         args.admin_password = secrets.token_hex(8)
         generated = True
 
-    print(f"Установка Битрикса через мастер: {args.url}")
+    print(f"Установка Битрикса через мастер: {args.url}" + ("  (с регистрацией продукта)" if args.register else "  (без регистрации продукта)"))
     w = Wizard(args.url, args)
     w.run()
 
