@@ -185,7 +185,7 @@ MSG
   restore      восстановить из снимка (текущее состояние сохранит заранее)
   passwords    bx passwords rotate — сменить пароли БД (root и пользователь) везде: БД, .env, Битрикс
   modules      модули: bx modules [all | install <id…> | uninstall <id…> | required | sync]
-  migrate      миграции структуры (sprint.migration): bx migrate install | add | ls | up | down
+  migrate      миграции структуры (sprint.migration): bx migrate install | add | ls | status | up | down
   update       обновить Битрикс (bx update --check — только показать, что доступно)
   doctor       диагностика окружения: Docker, порты, сайт, HTTPS, Битрикс, диск
   debug        отладка Битрикса: bx debug on | off | status

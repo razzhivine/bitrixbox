@@ -106,6 +106,7 @@
 ./bx migrate install                 # поставить модуль (версия закреплена) и папку миграций
 ./bx migrate add "каталог товаров"   # создать файл local/php_interface/migrations/Version….php
 ./bx migrate ls --new                # что ещё не применено
+./bx migrate status                  # применено / ждут применения / неизвестные
 ./bx migrate up                      # применить: обязательные модули → снимок → миграции
 ./bx migrate down                    # откатить (или down <версия>)
 ```
@@ -125,6 +126,13 @@
 ```bash
 ./bx setup --defaults --edition standard --install --clean && ./bx migrate install && ./bx migrate up
 ```
+
+Конструкторы (`bx migrate run IblockBuilder`, `HlblockBuilder`, `OptionBuilder` и др.) генерируют миграцию из уже
+настроенного в админке: отвечайте на вопросы в терминале, множественный выбор — названия через пробел. В `sprint.migration`
+5.15.1 они падали на таких вопросах (`TypeError`), `bx migrate install` исправляет это одной строкой в файле модуля.
+
+Подробный гид: [docs/MIGRATIONS.md](docs/MIGRATIONS.md) (ежедневная работа, воспроизводимость с нуля, выкладка на сервер,
+ограничения) и готовый workflow для CI вашего проекта: [docs/templates/bitrixbox-migrations.yml](docs/templates/bitrixbox-migrations.yml).
 
 Про кеш: в консольных процессах `bx migrate install` отключает кеши инфоблоков (блок в `dbconn.php`, только `cli`):
 без этого тип инфоблока, созданный миграцией, не виден в том же процессе, и создание инфоблока падает с «Неверный тип блока».
@@ -152,7 +160,7 @@
 | `init` | настройка и запуск окружения |
 | `install` | пройти мастер установки Битрикса без браузера |
 | `modules` | модули: `all`, `install <id…>`, `uninstall <id…>`, `required`, `sync` |
-| `migrate` | миграции структуры (sprint.migration): `install`, `add`, `ls`, `up`, `down`, остальное как у модуля |
+| `migrate` | миграции структуры (sprint.migration): `install`, `add`, `ls`, `status`, `up`, `down`, `run`, остальное как у модуля |
 | `update` | обновить Битрикс до последней версии (`update --check` — только показать, что доступно); перед обновлением делает снимок |
 | `clean` | очистка демо-данных, остатков и модулей |
 | `https [--off]` | включить или выключить HTTPS (`--port`, `--domains`, `--redirect`, `--defaults`) |
@@ -191,6 +199,7 @@ scripts/                реализация команд: init.sh, https.sh, cl
 scripts/php/            PHP внутри контейнера: cleanup.php, modules.php, debug.php, cache.php, doctor.php, update.php
 .github/workflows/      CI: проверка скриптов и сквозная установка с нуля
 local/                  ваш код (шаблоны, php_interface, свои модули)
+docs/                   гиды (docs/MIGRATIONS.md) и шаблоны CI для вашего проекта
 backups/                снимки `bx backup` (в git не попадают)
 ```
 

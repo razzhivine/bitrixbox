@@ -3,6 +3,7 @@
 #   bx migrate install [--version X]   поставить модуль (по умолчанию закреплённая версия) и подготовить папку миграций
 #   bx migrate add "описание"          создать файл миграции в local/php_interface/migrations
 #   bx migrate ls [--new|--installed]  список миграций
+#   bx migrate status                  сколько применено, сколько ждёт применения, есть ли «неизвестные» (в базе есть, файла нет)
 #   bx migrate up [--no-backup]        применить новые: сначала bx modules sync, потом снимок (bx backup), потом миграции
 #   bx migrate down [версия]           откатить
 #   bx migrate redo|mark|delete|run|config …   остальные команды модуля передаются как есть
@@ -30,16 +31,30 @@ module_present() { docker compose exec -T php test -f "$MODDIR/tools/migrate.php
 sprint() {
   if [ -t 0 ] && [ -t 1 ]; then
     docker compose exec -u www-data php php "$MODDIR/tools/migrate.php" "$@"
+  elif [ "${BX_STDIN:-0}" = 1 ]; then
+    # скрипты: BX_STDIN=1 и ответы на вопросы конструктора через stdin
+    docker compose exec -T -u www-data php php "$MODDIR/tools/migrate.php" "$@"
   else
     docker compose exec -T -u www-data php php "$MODDIR/tools/migrate.php" "$@" </dev/null
   fi
+}
+
+# В sprint.migration 5.15.1 ConsoleOutput::input() объявлен как возвращающий string, а для вопросов с множественным выбором
+# («Что переносим?», «Выберите свойства») возвращает массив: на PHP 8 это TypeError, и консольные конструкторы
+# (bx migrate run IblockBuilder и т. п.) падают. Расширяем возвращаемый тип. Если в модуле уже исправлено, ничего не делает.
+patch_module() {
+  docker compose exec -T -u www-data php sh -c '
+    f='"$MODDIR"'/lib/output/consoleoutput.php
+    if grep -q "function input(\$field): string\$" "$f" 2>/dev/null; then
+      sed -i "s/public function input(\$field): string\$/public function input(\$field): string|array/" "$f" && echo "  исправление совместимости модуля применено (ConsoleOutput::input)"
+    fi' </dev/null
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 
 case "$cmd" in
   help|-h|--help)
-    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'
     ;;
 
   install)
@@ -58,6 +73,7 @@ case "$cmd" in
       docker compose exec -T -u www-data php sh -c "set -e; mkdir -p $MODDIR; curl -fsSL https://github.com/andreyryabin/sprint.migration/archive/refs/tags/$ver.tar.gz | tar xz --strip-components=1 -C $MODDIR" </dev/null \
         || { echo "Не удалось скачать версию $ver (нет такого тега или нет сети)"; exit 1; }
     fi
+    patch_module
     bash scripts/modules.sh install sprint.migration || exit 1
 
     # В консоли конец запроса не наступает между операциями, и Битрикс не успевает сбросить отложенный кеш инфоблоков:
@@ -75,6 +91,30 @@ case "$cmd" in
     echo
     echo "Готово. Миграции будут лежать в $MIGDIR."
     echo "Начало работы:  bx migrate add \"описание\"   →  правьте up()/down()  →  bx migrate up"
+    ;;
+
+  status)
+    need_running
+    module_present || { echo "Модуль миграций не установлен: bx migrate install"; exit 1; }
+    # В выводе модуля к каждой миграции стоит статус; считаем по ним (цвета убираем)
+    out=$(sprint ls | sed 's/\x1b\[[0-9;]*m//g')
+    total=$(echo "$out" | grep -c 'Version[0-9]' || true)
+    new=$(sprint ls --new | sed 's/\x1b\[[0-9;]*m//g' | grep -c 'Version[0-9]' || true)
+    inst=$(sprint ls --installed | sed 's/\x1b\[[0-9;]*m//g' | grep -c 'Version[0-9]' || true)
+    unknown=$(echo "$out" | grep -ci 'неизвестн' || true)
+    echo "Миграций всего:          $total"
+    echo "Применено:               $inst"
+    echo "Ждут применения (новые): $new"
+    echo "Неизвестные (в базе есть, файла нет): $unknown"
+    if [ "$new" != 0 ]; then
+      echo
+      echo "Новые:"
+      sprint ls --new | sed 's/\x1b\[[0-9;]*m//g' | awk '
+        /^│ Version[0-9]+/ { name=$2; want=0 }
+        /^├─/              { want=1; next }
+        want && /^│ /      { sub(/^│ /, ""); print "  " name "  " $0; want=0 }'
+    fi
+    [ "$unknown" = 0 ] || echo "Совет: bx migrate mark unknown --as=new — убрать «неизвестные» из учёта (файлов у них нет)."
     ;;
 
   up)
@@ -106,6 +146,18 @@ case "$cmd" in
       [ "$backup" = 1 ] && echo "Вернуть состояние до миграций: bx restore (снимок с меткой before-migrate)."
       exit $rc
     fi
+    ;;
+
+  run)
+    need_running
+    module_present || { echo "Модуль миграций не установлен: bx migrate install"; exit 1; }
+    # Конструкторы (экспорт инфоблока, hl-блока, настроек в миграцию) задают вопросы. Без терминала и без явных
+    # ответов они зацикливаются на первом вопросе, поэтому в таком случае не запускаем.
+    if [ ! -t 0 ] && [ "${BX_STDIN:-0}" != 1 ]; then
+      echo "Конструктор интерактивный: запустите bx migrate run … из терминала (или передайте ответы через stdin и BX_STDIN=1)."
+      exit 1
+    fi
+    sprint run "$@"
     ;;
 
   *)

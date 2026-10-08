@@ -1,0 +1,50 @@
+# Проверка миграций структуры Битрикса в CI вашего проекта (шаблон BitrixBox).
+# Положите файл в .github/workflows/ проекта, где папка local/ лежит в корне репозитория.
+# Что делает: пустой Битрикс (BitrixBox) + ваш local/ -> bx migrate up -> down -> up.
+name: Миграции Битрикса
+
+on:
+  push:
+  pull_request:
+
+env:
+  BITRIXBOX_VERSION: v1.1.0   # версия BitrixBox, закреплена намеренно
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Код проекта
+        uses: actions/checkout@v7
+        with:
+          path: project
+
+      - name: BitrixBox
+        run: git clone --depth 1 --branch "$BITRIXBOX_VERSION" https://github.com/razzhivine/bitrixbox.git bitrixbox
+
+      - name: Пустой Битрикс (без демо-данных, только нужные модули)
+        run: |
+          cd bitrixbox
+          # local/ проекта (миграции и bx-modules.txt) кладём до установки, чтобы clean сохранил нужные модули
+          mkdir -p local && cp -R ../project/local/. local/
+          chmod -R a+rwx local
+          ./bx setup --defaults --edition standard --install --skip-updates --clean --no-https
+
+      - name: Модуль миграций и применение миграций (up)
+        run: |
+          cd bitrixbox
+          ./bx migrate install
+          ./bx migrate up --no-backup
+          ./bx migrate status
+
+      - name: Откат и повторное применение (down, up)
+        run: |
+          cd bitrixbox
+          ./bx migrate down
+          ./bx migrate up --no-backup
+          ./bx migrate ls --new | grep -q Version && { echo "остались неприменённые миграции"; exit 1; } || echo "все миграции применены"
+
+      - name: Логи при падении
+        if: failure()
+        run: cd bitrixbox && docker compose logs --tail 80
