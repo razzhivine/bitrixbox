@@ -1,0 +1,8 @@
+# Модули, которые BitrixBox не удаляет никогда (bx clean, bx modules uninstall).
+# Единственный список: его читают scripts/clean.sh и scripts/modules.sh (а через них — scripts/php/*.php).
+# Модули конкретного проекта перечисляйте не здесь, а в local/bx-modules.txt.
+main
+security
+fileman
+ui
+sprint.migration

@@ -6,7 +6,7 @@
 #   - демо-картинки в корне upload/
 #   - модули: либо спрашивает по каждому «удалить?» (и «сохранить таблицы БД?», если модуль
 #     это умеет), либо удаляет все сразу. Удаление идёт через штатный деинсталлятор (DoUninstall).
-#     Защищены и не удаляются никогда: main, security, fileman, ui.
+#     Защищены и не удаляются никогда: модули из scripts/protected-modules.txt (main, security, fileman, ui, sprint.migration).
 #   - остатки удалённых модулей: их настройки, пользовательские поля, почтовые типы, мастера
 #     установки, временные файлы, название сайта от демо-шаблона
 #   - по отдельному вопросу: файлы неустановленных модулей на диске
@@ -29,7 +29,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DRY=0; YES=0; IBLOCKS=""; PAGES=1; CONTENT=1; KEEP=0; MODULES=1; LEFT=1; FILES=ask; ALLMOD=0; DROPT=0
-PROTECTED=" main security fileman ui sprint.migration "  # дублируется в scripts/php/modules.php
+# Защищённые модули — один список на весь BitrixBox (его же передаём в scripts/php/modules.php)
+PROTECTED=" $(sed -e 's/#.*//' -e 's/[[:space:]]//g' scripts/protected-modules.txt | grep -v '^$' | tr '\n' ' ')"
 # Обязательные модули проекта (local/bx-modules.txt) тоже не удаляются и их файлы остаются на диске
 REQUIRED=""
 if [ -f local/bx-modules.txt ]; then
@@ -75,7 +76,7 @@ left_php() { # left_php <DRY_RUN 0|1> <MODULE_FILES 0|1> [PRINT_PATHS]
 }
 
 module_php() { # module_php <MODE> [MODULE] [SAVEDATA]
-  docker compose exec -T -e MODE="$1" -e MODULE="${2:-}" -e SAVEDATA="${3:-N}" php php < scripts/php/modules.php
+  docker compose exec -T -e MODE="$1" -e MODULE="${2:-}" -e SAVEDATA="${3:-N}" -e PROTECTED="$(echo "$PROTECTED" | xargs | tr ' ' ',')" php php < scripts/php/modules.php
 }
 
 # Модули, у которых деинсталлятор спрашивает «сохранить таблицы?»

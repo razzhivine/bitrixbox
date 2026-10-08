@@ -8,7 +8,7 @@ on:
   pull_request:
 
 env:
-  BITRIXBOX_VERSION: v1.1.0   # версия BitrixBox, закреплена намеренно
+  BITRIXBOX_VERSION: v1.2.0   # версия BitrixBox, закреплена намеренно
 
 jobs:
   migrations:

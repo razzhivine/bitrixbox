@@ -3,7 +3,7 @@
 #   bx init                      задаёт вопросы
 #   bx init --defaults           без вопросов, всё по умолчанию (пароли случайные)
 #   Любой вопрос можно закрыть флагом:
-#     --edition web|start|standard|small_business|business
+#     --edition web|start|standard|small_business|business|none   (none — пустой сайт для bx import)
 #     --db mysql-8.4|mysql-8.0|mariadb-11.4|mariadb-10.11
 #     --php 8.3|8.2        (Битрикс этой версии требует PHP 8.2 и выше)
 #     --project имя        префикс контейнеров и томов Docker (по умолчанию — имя папки)
@@ -103,9 +103,11 @@ choose EDITION "Какую редакцию Битрикса ставить?" \
   start          "Старт (start)" \
   standard       "Стандарт (standard)" \
   small_business "Малый бизнес (small_business)" \
-  business       "Бизнес (business)"
+  business       "Бизнес (business)" \
+  none           "Ничего не скачивать: перенесу существующий сайт (bx import)"
 case $EDITION in
   web)            DISTRIB_URL="$BASE/scripts/bitrixsetup.php"; START_PATH="/bitrixsetup.php" ;;
+  none)           DISTRIB_URL=none; START_PATH="/" ;;
   *)              DISTRIB_URL="$BASE/${EDITION}_encode.tar.gz"; START_PATH="/" ;;
 esac
 

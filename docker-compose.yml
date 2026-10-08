@@ -3,7 +3,8 @@
 name: ${BX_PROJECT:-bitrixbox}
 
 services:
-  # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто)
+  # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто).
+  # DISTRIB_URL=none — ничего не скачивать (сайт переносится командой bx import)
   bitrix-setup:
     image: alpine:3.24
     environment:
@@ -16,6 +17,9 @@ services:
       - |
         if [ -e /var/www/html/bitrix ] || [ -e /var/www/html/bitrixsetup.php ]; then
           echo "В www уже есть Битрикс, пропускаю скачивание"; exit 0
+        fi
+        if [ -z "$$DISTRIB_URL" ] || [ "$$DISTRIB_URL" = none ]; then
+          echo "Дистрибутив не нужен (перенос сайта: bx import)"; exit 0
         fi
         echo "Скачиваю $$DISTRIB_URL ..."
         case "$$DISTRIB_URL" in
@@ -87,6 +91,10 @@ services:
 
   nginx:
     image: nginx:1.31-alpine
+    # umask 000: файлы, которые bx upload-proxy --save сохраняет в upload/, должны быть доступны PHP на запись
+    # (nginx работает под своим пользователем, Битрикс — под www-data). Других файлов nginx не создаёт.
+    entrypoint: ["sh", "-c", "umask 000 && exec /docker-entrypoint.sh \"$$@\"", "--"]
+    command: ["nginx", "-g", "daemon off;"]
     depends_on:
       - php
     ports:
@@ -99,6 +107,7 @@ services:
       - ./docker/nginx/bitrix.inc:/etc/nginx/bitrix.inc:ro
       - ./docker/nginx/https:/etc/nginx/https.d:ro
       - ./docker/nginx/certs:/etc/nginx/certs:ro
+      - ./docker/nginx/upload:/etc/nginx/upload.d:ro
 
   db:
     image: ${DB_IMAGE:-mysql:8.4}

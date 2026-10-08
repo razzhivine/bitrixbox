@@ -65,8 +65,9 @@ $install = ($mode === 'install');
 $id = (string)getenv('MODULE');
 $save = getenv('SAVEDATA') === 'Y' ? 'Y' : 'N';
 
-// эти модули не удаляем никогда (список дублируется в scripts/clean.sh)
-const PROTECTED_MODULES = ['main', 'security', 'fileman', 'ui', 'sprint.migration'];
+// эти модули не удаляем никогда: список приходит из scripts/protected-modules.txt (через scripts/modules.sh);
+// main защищён в любом случае, даже если список не передали
+define('PROTECTED_MODULES', array_values(array_unique(array_merge(['main'], array_filter(explode(',', (string)getenv('PROTECTED')))))));
 if ($id === '') {
     echo "\nBXRESULT:FAIL:не указан модуль\n";
     exit(2);

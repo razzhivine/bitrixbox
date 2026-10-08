@@ -21,10 +21,13 @@ location @bitrix {
     fastcgi_read_timeout 300;
 }
 
-# закрываем служебные папки
-location ~ ^/(bitrix/(modules|local_cache|stack_cache|managed_cache|php_interface)|upload/support/not_image)/ {
+# закрываем служебные папки (в bitrix/backup лежат резервные копии и дампы базы)
+location ~ ^/(bitrix/(modules|local_cache|stack_cache|managed_cache|php_interface|backup)|upload/support/not_image)/ {
     deny all;
 }
+
+# недостающие файлы upload/ с боевого сайта (bx upload-proxy); без настройки папка пустая
+include /etc/nginx/upload.d/*.conf;
 
 # в upload PHP не исполняем (аналог upload/.htaccess для Apache)
 location ~* ^/upload/.*\.(php|phtml|phar)$ { deny all; }

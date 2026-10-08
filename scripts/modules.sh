@@ -25,8 +25,11 @@ need_running() {
     || { echo "Битрикс ещё не установлен — сначала bx install"; exit 1; }
 }
 
+# защищённые модули: scripts/protected-modules.txt (тот же список читает scripts/clean.sh)
+PROTECTED=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' scripts/protected-modules.txt | grep -v '^$' | paste -sd, -)
+
 module_php() { # module_php MODE [MODULE] [SAVEDATA]
-  docker compose exec -T -e MODE="$1" -e MODULE="${2:-}" -e SAVEDATA="${3:-N}" php php < scripts/php/modules.php 2>&1
+  docker compose exec -T -e MODE="$1" -e MODULE="${2:-}" -e SAVEDATA="${3:-N}" -e PROTECTED="$PROTECTED" php php < scripts/php/modules.php 2>&1
 }
 
 # один модуль: install|uninstall -> код 0 при успехе; сообщение — в $MSG

@@ -10,6 +10,7 @@
 import argparse
 import html
 import http.cookiejar
+import json
 import os
 import re
 import secrets
@@ -83,16 +84,41 @@ def form_data(form, submit="StepNext"):
     return data
 
 
+def minimize(t):
+    """Сжатая копия ответа мастера для записи (BX_WIZARD_RECORD) и тестов: только то, что читает драйвер.
+
+    AJAX-ответ — JS внутри [response]…[/response]; обычная страница — разметка форм без текста
+    плюс признак AJAX-шага. Тексты Битрикса и всё остальное на странице не сохраняются.
+    """
+    m = re.search(r"\[response\].*?\[/response\]", t, re.S | re.I)
+    if m:
+        return m.group(0)
+    forms = re.findall(r"<form\b.*?</form>", t, re.S | re.I)
+    # текст между тегами убираем, кроме содержимого textarea: это значение поля, его отправляет браузер
+    parts = re.split(r"(<textarea\b[^>]*>.*?</textarea>)", "".join(forms), flags=re.S | re.I)
+    body = "".join(p if p.lower().startswith("<textarea") else re.sub(r">[^<]*<", "><", p) for p in parts)
+    return body + ("\n<!-- new CAjaxForm -->" if "new CAjaxForm" in t else "")
+
+
 def page_text(t):
     s = re.sub(r"<script.*?</script>|<style.*?</style>", "", t, flags=re.S)
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", s))).strip()
 
 
 class Wizard:
-    def __init__(self, base, args):
+    # Секреты не попадают в запись диалога (BX_WIZARD_RECORD): вместо них — метки вида <db_password>
+    SECRET_ARGS = ("db_password", "admin_password", "reg_name", "reg_surname", "reg_email")
+
+    def __init__(self, base, args, record=None):
         self.base, self.args = base.rstrip("/"), args
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
         self.last_status = None
+        self.record = None
+        if record:
+            self.record = open(record, "w", encoding="utf-8")
+            # первая строка — параметры запуска без секретов: по ним тест воспроизводит те же запросы
+            self.record.write(json.dumps({"args": {k: v for k, v in vars(args).items() if k not in self.SECRET_ARGS}},
+                                         ensure_ascii=False) + "\n")
 
     # ---- сеть
     def request(self, path, data=None):
@@ -100,11 +126,28 @@ class Wizard:
         body = urllib.parse.urlencode(data).encode() if data is not None else None
         try:
             with self.opener.open(urllib.request.Request(url, body), timeout=1200) as r:
-                return r.read().decode("utf-8", "replace")
+                t = r.read().decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             raise SystemExit(f"Сервер ответил {e.code} на {path}. Подробности: bx logs")
         except urllib.error.URLError as e:
             raise SystemExit(f"Нет связи с {url}: {e.reason}. Контейнеры запущены? (bx status)")
+        if self.record:
+            resp = minimize(t)
+            for v, label in self.secrets().items():   # мастер возвращает введённое в скрытых полях — тоже прячем
+                resp = resp.replace(v, label).replace(html.escape(v), label)
+            self.record.write(json.dumps({"path": path, "data": self.mask(data), "response": resp},
+                                         ensure_ascii=False) + "\n")
+            self.record.flush()
+        return t
+
+    def secrets(self):
+        return {getattr(self.args, k): f"<{k}>" for k in self.SECRET_ARGS if getattr(self.args, k, "")}
+
+    def mask(self, data):
+        if data is None:
+            return None
+        secret = self.secrets()
+        return {k: secret.get(v, v) for k, v in data.items()}
 
     def log(self, msg):
         print(msg, flush=True)
@@ -270,7 +313,8 @@ def main():
         generated = True
 
     print(f"Установка Битрикса через мастер: {args.url}" + ("  (с регистрацией продукта)" if args.register else "  (без регистрации продукта)"))
-    w = Wizard(args.url, args)
+    # BX_WIZARD_RECORD=файл.jsonl — записать диалог с мастером (для tests/test_wizard.py)
+    w = Wizard(args.url, args, record=os.environ.get("BX_WIZARD_RECORD") or None)
     w.run()
 
     # проверка результата: главная открывается, установщик больше не отдаётся

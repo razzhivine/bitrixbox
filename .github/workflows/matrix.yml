@@ -31,4 +31,20 @@ jobs:
           EDITION: ${{ matrix.edition }}
           DB: ${{ matrix.db }}
           PHP: ${{ matrix.php }}
+          # диалог с мастером записывается, чтобы сравнить его с tests/fixtures/wizard-<редакция>.jsonl
+          BX_WIZARD_RECORD: ${{ runner.temp }}/wizard-${{ matrix.edition }}.jsonl
         run: bash tests/e2e.sh
+
+      - name: Изменился ли мастер установки Битрикса
+        if: always() && hashFiles(format('tests/fixtures/wizard-{0}.jsonl', matrix.edition)) != ''
+        run: >
+          python3 tests/test_wizard.py --diff "$RUNNER_TEMP/wizard-${{ matrix.edition }}.jsonl"
+          --against "tests/fixtures/wizard-${{ matrix.edition }}.jsonl"
+
+      - name: Свежая запись мастера (чтобы обновить tests/fixtures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wizard-${{ matrix.edition }}-${{ matrix.db }}-${{ matrix.php }}
+          path: ${{ runner.temp }}/wizard-${{ matrix.edition }}.jsonl
+          if-no-files-found: ignore
