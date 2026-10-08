@@ -14,6 +14,11 @@ updates:
       interval: weekly
     commit-message:
       prefix: "docker"
+    ignore:
+      # Версии БД закреплены намеренно: проверены только линейки MySQL 8.4/8.0 и MariaDB 11.4/10.11 (см. tests/e2e.sh,
+      # матрицу в CI). Менять их можно только после проверки Битрикса на новой версии.
+      - dependency-name: mysql
+      - dependency-name: mariadb
 
   - package-ecosystem: docker
     directory: /docker/php
