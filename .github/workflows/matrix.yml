@@ -43,7 +43,7 @@ jobs:
 
       - name: Свежая запись мастера (чтобы обновить tests/fixtures)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wizard-${{ matrix.edition }}-${{ matrix.db }}-${{ matrix.php }}
           path: ${{ runner.temp }}/wizard-${{ matrix.edition }}.jsonl
