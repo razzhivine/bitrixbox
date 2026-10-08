@@ -39,7 +39,7 @@ echo "== «Боевой» сайт =="
 rm -rf "$SRC"; mkdir -p "$SRC"
 tar -C "$ROOT" --exclude=./.git --exclude=./.env --exclude=./backups -cf - . | tar -C "$SRC" -xf -
 if src ./bx setup --defaults --edition standard --project bxsrc --no-https --install \
-     --http-port "$SRC_HTTP_PORT" --https-port $((SRC_HTTP_PORT+1)) --db-port $((DB_PORT+10000)) \
+     --http-port "$SRC_HTTP_PORT" --https-port $((SRC_HTTP_PORT+443)) --db-port $((DB_PORT+10000)) \
      --mail-port $((MAIL_PORT+10000)) --adminer-port $((ADMINER_PORT+10000)) >"$WORK/src.log" 2>&1; then ok "установлен"
 else fail "установка «боевого» сайта"; tail -20 "$WORK/src.log"; exit 1; fi
 
