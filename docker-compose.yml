@@ -21,11 +21,26 @@ services:
         if [ -z "$$DISTRIB_URL" ] || [ "$$DISTRIB_URL" = none ]; then
           echo "Дистрибутив не нужен (перенос сайта: bx import)"; exit 0
         fi
-        echo "Скачиваю $$DISTRIB_URL ..."
+        # Скачиваем во временный файл с повторами и распаковываем только целый архив: при обрыве связи
+        # раньше оставался недокачанный сайт, а контейнер завершался как успешный.
+        f=/tmp/distrib
+        for try in 1 2 3; do
+          echo "Скачиваю $$DISTRIB_URL (попытка $$try)..."
+          rm -f "$$f"
+          if wget -q -T 60 -U 'Mozilla/5.0' -O "$$f" "$$DISTRIB_URL"; then
+            case "$$DISTRIB_URL" in
+              *.php) [ -s "$$f" ] && break ;;
+              *)     gzip -t "$$f" 2>/dev/null && break ;;
+            esac
+          fi
+          echo "Не скачалось целиком, повторяю через 10 секунд"; sleep 10
+          [ "$$try" = 3 ] && { echo "Дистрибутив не скачан (проверьте сеть) — повторите: bx up"; exit 1; }
+        done
         case "$$DISTRIB_URL" in
-          *.php) wget -U 'Mozilla/5.0' -O /var/www/html/bitrixsetup.php "$$DISTRIB_URL" ;;
-          *)     wget -U 'Mozilla/5.0' -O- "$$DISTRIB_URL" | tar xz -C /var/www/html ;;
+          *.php) mv "$$f" /var/www/html/bitrixsetup.php ;;
+          *)     tar xzf "$$f" -C /var/www/html || { echo "Архив не распаковался — повторите: bx up"; find /var/www/html -mindepth 1 -delete; exit 1; } ;;
         esac
+        rm -f "$$f"
         chown -R 33:33 /var/www/html
     restart: "no"
 
