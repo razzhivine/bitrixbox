@@ -23,16 +23,40 @@ ensure_docker() {
   echo "Docker не поднялся за 3 минуты"; exit 1
 }
 
+# Совместимость со старыми установками: раньше Compose брал имя проекта из имени папки.
+# Если в .env нет BX_PROJECT, записываем то же самое имя, чтобы контейнеры и тома не «потерялись».
+if [ -f .env ] && ! grep -q '^BX_PROJECT=' .env; then
+  legacy="$(basename "$ROOT" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9_-]//g')"
+  printf 'BX_PROJECT=%s\n' "${legacy:-bitrixbox}" >> .env
+fi
+
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 
 case "$cmd" in
   setup)
-    # всё с нуля: Docker -> окружение -> HTTPS
+    # всё с нуля: Docker -> окружение -> HTTPS -> подсказка
+    #   bx setup                        с вопросами
+    #   bx setup --defaults             без вопросов (флаги init: --edition, --php, --http-port ...; HTTPS по умолчанию включается)
+    #   bx setup --no-https | --https   решить про HTTPS заранее;  --redirect  включить редирект http -> https
+    HTTPS_MODE=ask; HTTPS_ARGS=(); INIT_ARGS=()
+    while [ $# -gt 0 ]; do
+      case $1 in
+        --https)    HTTPS_MODE=yes ;;
+        --no-https) HTTPS_MODE=no ;;
+        --redirect) HTTPS_ARGS+=(--redirect) ;;
+        --defaults|-y) INIT_ARGS+=("$1"); HTTPS_ARGS+=(--defaults); [ "$HTTPS_MODE" = ask ] && HTTPS_MODE=yes ;;
+        *) INIT_ARGS+=("$1") ;;
+      esac
+      shift
+    done
     ensure_docker
-    bash scripts/init.sh
-    echo
-    read -r -p "Включить HTTPS? [Y/n]: " yn
-    [[ $yn =~ ^[nN]$ ]] || bash scripts/https.sh
+    bash scripts/init.sh ${INIT_ARGS[@]+"${INIT_ARGS[@]}"}
+    if [ "$HTTPS_MODE" = ask ]; then
+      echo
+      read -r -p "Включить HTTPS? [Y/n]: " yn
+      [[ $yn =~ ^[nN]$ ]] && HTTPS_MODE=no || HTTPS_MODE=yes
+    fi
+    [ "$HTTPS_MODE" = yes ] && bash scripts/https.sh ${HTTPS_ARGS[@]+"${HTTPS_ARGS[@]}"}
     cat <<'MSG'
 
 Дальше:
@@ -45,6 +69,7 @@ MSG
   init)     ensure_docker; exec bash scripts/init.sh "$@" ;;
   https)    ensure_docker; exec bash scripts/https.sh "$@" ;;
   clean)    ensure_docker; exec bash scripts/clean.sh "$@" ;;
+  doctor)   exec bash scripts/doctor.sh ;;
   cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
   cache-clear)
     ensure_docker
@@ -112,6 +137,7 @@ MSG
   open         открыть в браузере: site | admin | mail (письма) | db (Adminer)
   backup       снимок окружения (база, файлы, local); bx backup list — список
   restore      восстановить из снимка (текущее состояние сохранит заранее)
+  doctor       диагностика окружения: Docker, порты, сайт, HTTPS, Битрикс, диск
   debug        отладка Битрикса: bx debug on | off | status
   restart      перезапустить контейнеры
   status       состояние контейнеров

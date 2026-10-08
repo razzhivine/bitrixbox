@@ -103,7 +103,8 @@ do_restore() {
   echo "  файлы сайта..."
   docker compose exec -T -u root php sh -c 'find /var/www/html -mindepth 1 -maxdepth 1 ! -name local -exec rm -rf {} +' </dev/null
   docker compose exec -T -u root php sh -c 'tar xzf - -C /var/www/html' < "$SNAP/www.tar.gz"
-  docker compose exec -T -u root php sh -c 'cd /var/www/html/bitrix && mkdir -p cache managed_cache stack_cache tmp && chown -R 33:33 cache managed_cache stack_cache tmp' </dev/null
+  # кеш-папки исключены из снимка — создаём заново (если Битрикс уже установлен)
+  docker compose exec -T -u root php sh -c 'cd /var/www/html/bitrix 2>/dev/null || exit 0; mkdir -p cache managed_cache stack_cache tmp && chown -R 33:33 cache managed_cache stack_cache tmp' </dev/null
 
   echo "  папка local..."
   find local -mindepth 1 -delete 2>/dev/null || true

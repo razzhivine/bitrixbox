@@ -9,10 +9,10 @@
 #     Защищены и не удаляются никогда: main, security, fileman, ui.
 #   - остатки удалённых модулей: их настройки, пользовательские поля, почтовые типы, мастера
 #     установки, временные файлы, название сайта от демо-шаблона
-#   - по отдельному вопросу: файлы неустановленных модулей на диске (с архивом перед удалением)
+#   - по отдельному вопросу: файлы неустановленных модулей на диске
 # Остаются: служебные типы инфоблоков (rest_entity), пользователи и сам сайт (s1).
 #
-#   bx clean             показать план, спросить подтверждение, сделать бэкап БД и удалить
+#   bx clean             показать план, спросить подтверждение, сделать снимок (bx backup) и удалить
 #   bx clean --dry-run   только показать, что будет удалено
 #   bx clean --yes       без вопроса подтверждения
 #   bx clean --no-pages  не трогать страницы и шаблоны
@@ -135,7 +135,7 @@ fi
 
 if [ "$LEFT_STAGE" = 1 ] && [ "$FILES" = ask ] && [ "$DRY" != 1 ] && [ "$YES" != 1 ]; then
   echo
-  read -r -p "Удалить с диска файлы ВСЕХ неустановленных модулей (список и размер выше; перед этим сделаю архив)? [y/N]: " yn
+  read -r -p "Удалить с диска файлы ВСЕХ неустановленных модулей (список и размер выше; снимок перед очисткой их сохранит)? [y/N]: " yn
   [[ $yn =~ ^[yY]$ ]] && FILES=1 || FILES=0
 fi
 [ "$FILES" = ask ] && FILES=0
@@ -157,22 +157,15 @@ if [ "$YES" != 1 ]; then
       fi
     done
   fi
-  read -r -p "Выполнить это БЕЗ возможности восстановления файлов (бэкап сделаю только для базы)? [y/N]: " yn
+  echo "Перед удалением я сделаю полный снимок (bx backup). Откат: bx restore."
+  read -r -p "Выполнить? [y/N]: " yn
   [[ $yn =~ ^[yY]$ ]] || { echo "Отменено"; exit 0; }
 fi
 
-mkdir -p backups
-BACKUP="backups/bitrix-before-clean-$(date +%Y%m%d-%H%M%S).sql"
-echo
-echo "== Бэкап базы: $BACKUP =="
-docker compose exec -T db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction "$MYSQL_DATABASE" 2>/dev/null || mariadb-dump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction "$MYSQL_DATABASE"' </dev/null > "$BACKUP"
-[ -s "$BACKUP" ] || { echo "Бэкап пустой, останавливаюсь"; rm -f "$BACKUP"; exit 1; }
-
-if [ "$PAGES" = 1 ]; then
-  PAGES_BACKUP="${BACKUP%.sql}-pages.tar"
-  echo "== Бэкап страниц: $PAGES_BACKUP =="
-  docker compose exec -T php sh -c 'cd /var/www/html && tar c $(ls -A | grep -vxE "bitrix|local|upload|urlrewrite.php|.htaccess") bitrix/templates $(ls -p upload | grep -v "/$" | sed "s#^#upload/#")' </dev/null > "$PAGES_BACKUP"
-fi
+# Перед удалением — полный снимок (база + файлы сайта + local). Откат: bx restore <снимок>
+bash scripts/backup.sh backup before-clean
+SNAPSHOT=$(ls -1d backups/snapshot-*-before-clean 2>/dev/null | sort | tail -1)
+[ -n "$SNAPSHOT" ] && [ -s "$SNAPSHOT/www.tar.gz" ] || { echo "Снимок не создан — останавливаюсь, ничего не удалено"; exit 1; }
 
 if [ "$DEMO" = 1 ]; then
   echo
@@ -203,22 +196,12 @@ if [ ${#TODO[@]} -gt 0 ]; then
 fi
 
 if [ "$LEFT_STAGE" = 1 ]; then
-  if [ "$FILES" = 1 ]; then
-    FILES_BACKUP="${BACKUP%.sql}-modulefiles.tar.gz"
-    echo
-    echo "== Архив файлов модулей: $FILES_BACKUP (может занять минуту) =="
-    left_php 1 1 1 | grep -a '^FILE:' | cut -c6- \
-      | docker compose exec -T php sh -c 'cd /var/www/html && tar czf - -T -' > "$FILES_BACKUP"
-    [ -s "$FILES_BACKUP" ] || { echo "Архив пустой, файлы модулей не трогаю"; FILES=0; }
-  fi
   echo
   echo "== Очистка остатков$([ "$FILES" = 1 ] && echo " и файлов модулей") =="
   left_php 0 "$FILES" | grep -a -v '^FILE:'
 fi
 
 echo
-echo "Готово. Откат (файлы из upload/ при этом не вернутся):"
-echo "  база:    docker compose exec -T db sh -c 'mysql -uroot -p\"\$MYSQL_ROOT_PASSWORD\" \"\$MYSQL_DATABASE\"' < $BACKUP"
-[ -n "${PAGES_BACKUP:-}" ]  && echo "  страницы: docker compose exec -T -u root php tar x -C /var/www/html < $PAGES_BACKUP"
-[ -n "${FILES_BACKUP:-}" ] && [ "$FILES" = 1 ] && echo "  файлы модулей: docker compose exec -T -u root php tar xz -C /var/www/html < $FILES_BACKUP"
+echo "Готово. Откат ко всему состоянию до очистки (база, файлы сайта, upload, модули, local):"
+echo "  bx restore $(basename "$SNAPSHOT")"
 exit 0

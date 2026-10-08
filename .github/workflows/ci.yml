@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1"   # раз в неделю: ловит поломки от обновлений образов и сайта 1С-Битрикс
+
+jobs:
+  lint:
+    name: Проверка скриптов и конфигов
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: shellcheck -x -S warning bx scripts/*.sh
+
+      - name: Синтаксис bash
+        run: |
+          for f in bx scripts/*.sh; do bash -n "$f"; done
+
+      - name: Синтаксис PHP
+        run: |
+          for f in scripts/php/*.php; do
+            docker run --rm -v "$PWD":/w -w /w php:8.3-cli php -l "$f"
+          done
+
+      - name: docker compose config
+        run: |
+          printf 'DISTRIB_URL=x\nDB_NAME=b\nDB_USER=b\nDB_PASSWORD=p\nDB_ROOT_PASSWORD=r\n' > .env
+          docker compose config -q
+
+  e2e:
+    name: Установка с нуля (веб-установщик)
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bx setup без вопросов
+        run: ./bx setup --defaults --edition web --http-port 8080 --https-port 8443
+
+      - name: Установщик отдаётся как страница, а не как исходник
+        run: |
+          code=$(curl -s -o /tmp/body -w '%{http_code}' http://localhost:8080/bitrixsetup.php)
+          ctype=$(curl -sI http://localhost:8080/bitrixsetup.php | tr -d '\r' | grep -i '^content-type')
+          echo "код=$code $ctype"
+          [ "$code" = 200 ]
+          echo "$ctype" | grep -qi 'text/html'
+          ! head -c 100 /tmp/body | grep -q '<?php'
+
+      - name: HTTPS, почта и Adminer отвечают
+        run: |
+          curl -sk -o /dev/null -w 'https: %{http_code}\n' https://localhost:8443/bitrixsetup.php
+          [ "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/bitrixsetup.php)" = 200 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8025/)" = 200 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/)" = 200 ]
+
+      - name: Почта из PHP попадает в Mailpit
+        run: |
+          docker compose exec -T php php -r 'exit(mail("dev@example.com","CI","тест","From: ci@example.com") ? 0 : 1);'
+          sleep 1
+          curl -s http://localhost:8025/api/v1/messages | grep -q '"total":1'
+
+      - name: Снимок и восстановление
+        run: |
+          ./bx backup ci
+          ./bx backup list
+          echo yes | ./bx restore "$(./bx backup list | head -1 | awk '{print $1}')"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/bitrixsetup.php)" = 200 ]
+
+      - name: Диагностика
+        run: ./bx doctor || true   # замечания допустимы, важно, что команда не падает с ошибкой скрипта
+
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs --tail 80

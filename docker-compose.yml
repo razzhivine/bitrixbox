@@ -1,4 +1,7 @@
 # Все параметры берутся из .env, который создаёт команда `bx init`
+# Имя проекта задаёт префикс контейнеров и томов; не зависит от имени папки.
+name: ${BX_PROJECT:-bitrixbox}
+
 services:
   # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто)
   bitrix-setup:
@@ -68,13 +71,13 @@ services:
 
   # Ловушка почты: все письма сайта попадают сюда и наружу не уходят
   mailpit:
-    image: axllent/mailpit
+    image: axllent/mailpit:v1.30
     ports:
       - "127.0.0.1:${MAIL_PORT:-8025}:8025"
 
   # Веб-интерфейс для базы данных (сервер: db)
   adminer:
-    image: adminer
+    image: adminer:5
     depends_on:
       - db
     environment:
@@ -83,7 +86,7 @@ services:
       - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31-alpine
     depends_on:
       - php
     ports:
