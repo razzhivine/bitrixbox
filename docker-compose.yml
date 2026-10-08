@@ -77,7 +77,7 @@ services:
 
   # Веб-интерфейс для базы данных (сервер: db)
   adminer:
-    image: adminer:5
+    image: adminer:6
     depends_on:
       - db
     environment:
