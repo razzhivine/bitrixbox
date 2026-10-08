@@ -5,7 +5,7 @@ name: ${BX_PROJECT:-bitrixbox}
 services:
   # Одноразово скачивает выбранную редакцию Битрикса в том www (если там ещё пусто)
   bitrix-setup:
-    image: alpine:3.20
+    image: alpine:3.24
     environment:
       DISTRIB_URL: ${DISTRIB_URL}
     volumes:
