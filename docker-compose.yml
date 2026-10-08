@@ -101,7 +101,7 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:ro
 
   db:
-    image: ${DB_IMAGE:-mysql:8.4}
+    image: ${DB_IMAGE:-mysql:26.7}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
