@@ -114,7 +114,7 @@ do_restore() {
   # дождаться, пока сайт снова начнёт отвечать (до 60 секунд)
   port=$(grep '^HTTP_PORT=' .env 2>/dev/null | cut -d= -f2-); port=${port:-8080}
   for _ in $(seq 1 30); do
-    code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://localhost:$port/" 2>/dev/null)
+    code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://localhost:$port/"  2>/dev/null || true)
     [ -n "$code" ] && [ "$code" != 000 ] && break
     sleep 2
   done

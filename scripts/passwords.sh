@@ -91,7 +91,7 @@ docker compose up -d </dev/null 2>&1 | grep -aE "Recreate|Started|Error" | tail 
 # дождаться сайта
 port=$(env_get HTTP_PORT); port=${port:-8080}
 for _ in $(seq 1 30); do
-  code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://localhost:$port/" 2>/dev/null)
+  code=$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://localhost:$port/"  2>/dev/null || true)
   [ -n "$code" ] && [ "$code" != 000 ] && break
   sleep 2
 done
