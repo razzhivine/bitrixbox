@@ -97,6 +97,7 @@
 | `install` | пройти мастер установки Битрикса без браузера |
 | `clean` | очистка демо-данных, остатков и модулей |
 | `https [--off]` | включить или выключить HTTPS (`--port`, `--domains`, `--redirect`, `--defaults`) |
+| `passwords rotate` | сменить пароли БД (пользователь и root) везде: в базе, `.env` и настройках Битрикса; перед сменой делает снимок |
 | `doctor` | диагностика: Docker, порты, сайт, HTTPS, кеш модулей, агенты, пароли, диск |
 | `backup [метка]` | снимок: база, файлы сайта, `local`, `.env`; `backup list` — список |
 | `restore [снимок]` | восстановить из снимка; текущее состояние сохраняется заранее (метка `pre-restore`) |
@@ -126,7 +127,7 @@
 bx                      единственная команда-диспетчер
 docker-compose.yml      сервисы (параметры из .env, имя проекта — BX_PROJECT)
 docker/                 конфиги контейнеров: php/ (Dockerfile, php.ini, msmtprc), nginx/ (сайт, https, сертификаты)
-scripts/                реализация команд: init.sh, https.sh, clean.sh, backup.sh, cron.sh, doctor.sh, wizard.py
+scripts/                реализация команд: init.sh, https.sh, clean.sh, backup.sh, cron.sh, doctor.sh, passwords.sh, wizard.py
 scripts/php/            PHP внутри контейнера: cleanup.php, modules.php, debug.php, cache.php, doctor.php
 .github/workflows/      CI: проверка скриптов и сквозная установка с нуля
 local/                  ваш код (шаблоны, php_interface, свои модули)
@@ -151,4 +152,5 @@ backups/                снимки `bx backup` (в git не попадают)
 | Список модулей в админке не совпадает с базой | `bx cache-clear` (кеш списка модулей живёт сутки) |
 | Нужно начать заново | `bx reset`, затем `bx setup ...` |
 | Что-то сломалось после очистки или обновления | `bx backup list`, затем `bx restore <снимок>` |
+| Слабый пароль БД (старая установка) | `bx passwords rotate` |
 | Не помню пароль администратора | сбросьте в админке или через Adminer; при установке он выводится один раз |

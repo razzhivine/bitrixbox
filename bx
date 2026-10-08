@@ -107,6 +107,7 @@ MSG
   https)    ensure_docker; exec bash scripts/https.sh "$@" ;;
   clean)    ensure_docker; exec bash scripts/clean.sh "$@" ;;
   install)  ensure_docker; run_wizard "$@" ;;
+  passwords) ensure_docker; exec bash scripts/passwords.sh "$@" ;;
   doctor)   exec bash scripts/doctor.sh ;;
   cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
   cache-clear)
@@ -176,6 +177,7 @@ MSG
   open         открыть в браузере: site | admin | mail (письма) | db (Adminer)
   backup       снимок окружения (база, файлы, local); bx backup list — список
   restore      восстановить из снимка (текущее состояние сохранит заранее)
+  passwords    bx passwords rotate — сменить пароли БД (root и пользователь) везде: БД, .env, Битрикс
   doctor       диагностика окружения: Docker, порты, сайт, HTTPS, Битрикс, диск
   debug        отладка Битрикса: bx debug on | off | status
   restart      перезапустить контейнеры
