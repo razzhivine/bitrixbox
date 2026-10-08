@@ -44,6 +44,7 @@ run_wizard() {
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in --version|-v) cmd=version ;; esac
 
 case "$cmd" in
   setup)
@@ -162,6 +163,7 @@ MSG
     ln -sf "$ROOT/bx" "$target/bx"
     echo "Готово: команда 'bx' доступна из любой папки ($target/bx)"
     ;;
+  version)  echo "BitrixBox $(cat "$ROOT/VERSION" 2>/dev/null || echo dev)" ;;
   help|-h|--help)
     cat <<'HELP'
 Использование: bx <команда>
@@ -188,6 +190,7 @@ MSG
   logs         логи
   shell        консоль в php-контейнере
   reset        снести всё и начать заново (спросит подтверждение)
+  version      версия BitrixBox (bx --version)
   install-cli  сделать команду `bx` доступной из любой папки
 HELP
     ;;
