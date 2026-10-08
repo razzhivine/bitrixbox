@@ -79,3 +79,38 @@ jobs:
       - name: Логи при падении
         if: failure()
         run: docker compose logs --tail 80
+
+  e2e-standard:
+    name: Полная установка Стандарта одной командой
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bx setup --install --clean (с нуля до очищенного Битрикса)
+        run: ./bx setup --defaults --edition standard --install --clean --http-port 8080 --https-port 8443
+
+      - name: Остались только защищённые модули, сайт и админка отвечают
+        run: |
+          mods=$(./bx sql "select group_concat(ID order by ID) from b_module" | sed -n 4p | tr -d '| ')
+          echo "модули: $mods"
+          [ "$mods" = "fileman,main,security,ui" ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/)" = 200 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/bitrix/admin/)" = 200 ]
+          [ "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:8443/bitrix/admin/)" = 200 ]
+
+      - name: Диагностика без замечаний
+        run: ./bx doctor
+
+      - name: Откат очистки одной командой
+        run: |
+          snap=$(./bx backup list | grep before-clean | head -1 | awk '{print $1}')
+          echo yes | ./bx restore "$snap"
+          sleep 5
+          [ "$(./bx sql "select count(*) from b_module" | sed -n 4p | tr -d '| ')" = 26 ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/products/)" = 200 ]
+
+      - name: Логи при падении
+        if: failure()
+        run: docker compose logs --tail 80

@@ -7,20 +7,42 @@
 
 ## С нуля
 
+Одна команда: Docker, окружение, HTTPS, мастер установки Битрикса и очистка демо-данных (около полутора минут):
+
 ```bash
-./bx setup     # Docker, окружение (редакция, БД, пароли, порты), HTTPS
+./bx setup --defaults --edition standard --install --clean
 ```
 
-Дальше пройдите установщик Битрикса в браузере (адрес покажет `setup`),
-в шаге с базой укажите сервер `db` и данные, которые вводили на шаге настройки.
-Потом, если нужно убрать демо-данные:
+Пароли (база, администратор) генерируются случайные и выводятся в конце; база лежит в `.env`.
+Админ по умолчанию: логин `admin`, свой логин/пароль/почту задают флаги `--admin-login`, `--admin-password`, `--admin-email`.
+
+Если нужны вопросы вместо флагов, или вы хотите пройти мастер в браузере:
+
+```bash
+./bx setup                      # вопросы про редакцию, базу, пароли, порты, HTTPS
+./bx install                    # пройти мастер Битрикса без браузера (если не делали --install)
+```
+
+Откройте адрес из вывода `setup` и пройдите установщик сами, если не используете `--install`
+(сервер базы данных `db`, остальное в `.env`). Редакцию `web` (bitrixsetup.php) автоматически не поставить —
+в ней редакцию выбирают в браузере; используйте `start`, `standard`, `small_business` или `business`.
+
+Убрать демо-данные потом (после `--install` без `--clean`):
 
 ```bash
 ./bx clean --dry-run   # посмотреть, что будет удалено
-./bx clean             # удалить (спросит подтверждение, сделает бэкап)
+./bx clean             # удалить: спросит подтверждение и сделает снимок; откат — bx restore
+./bx clean --yes --all-modules --drop-tables --module-files   # то же без вопросов
 ```
 
 Чтобы писать `bx` из любой папки: `./bx install-cli`.
+
+### Флаги неинтерактивной настройки
+
+`--defaults` · `--edition web|start|standard|small_business|business` · `--db mysql-8.4|mysql-8.0|mariadb-11.4|mariadb-10.11` ·
+`--php 8.3|8.2` · `--project имя` · `--http-port` `--https-port` `--db-port` `--mail-port` `--adminer-port` ·
+`--https` / `--no-https` · `--redirect` · `--install` · `--clean` · `--solution corp_furniture|corp_services` ·
+`--demo yes|no` (с `no` Битрикс не копирует страницы сайта, и сайт остаётся недоустановленным).
 
 ## Команды
 
@@ -28,6 +50,8 @@
 |---|---|
 | `setup` | всё с нуля одной командой |
 | `init` | настройка и запуск |
+| `install` | пройти мастер установки Битрикса без браузера |
+| `doctor` | диагностика: Docker, порты, сайт, HTTPS, кеш модулей, агенты, диск |
 | `https [--off]` | включить/выключить HTTPS |
 | `clean` | очистка демо-данных, остатков и модулей |
 | `cron on\|off\|status` | агенты и почтовые события по расписанию (отдельный контейнер) или на хитах |
@@ -47,10 +71,11 @@
 bx                      единственная команда-диспетчер
 docker-compose.yml      php, nginx, db, cron, mailpit, adminer (параметры из .env)
 docker/                 конфиги контейнеров: php/ (Dockerfile, php.ini), nginx/ (сайт, https, сертификаты)
-scripts/                реализация команд: init.sh, https.sh, clean.sh, backup.sh, cron.sh
-scripts/php/            PHP для запуска внутри контейнера: cleanup.php, modules.php, debug.php, cache.php
+scripts/                реализация команд: init.sh, https.sh, clean.sh, backup.sh, cron.sh, doctor.sh, wizard.py
+scripts/php/            PHP для запуска внутри контейнера: cleanup.php, modules.php, debug.php, cache.php, doctor.php
+.github/workflows/      CI: проверка скриптов и сквозная установка с нуля
 local/                  ваш код (шаблоны, php_interface, свои модули) — лежит на диске, виден в IDE
-backups/                бэкапы `bx clean` и снимки `bx backup` (в git не попадают)
+backups/                снимки `bx backup` (и перед `bx clean`); в git не попадают
 ```
 
 Файлы Битрикса лежат в томе Docker `www`, а не на диске: на macOS файловая система не различает
@@ -68,3 +93,5 @@ backups/                бэкапы `bx clean` и снимки `bx backup` (в 
 
 - Порты базы данных, Mailpit и Adminer открыты только на `127.0.0.1` (не видны из локальной сети).
 - `bx debug on` включает подробные ошибки только на время отладки; на рабочем сайте всегда `off`.
+- Пароли базы по умолчанию случайные (24 символа), `.env` с правами 600; версии образов закреплены в `docker-compose.yml`.
+- `bx doctor` предупредит о слабых паролях, открытом `.env`, истекающем сертификате и отладке.

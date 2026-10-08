@@ -5,7 +5,7 @@
 #   Любой вопрос можно закрыть флагом:
 #     --edition web|start|standard|small_business|business
 #     --db mysql-8.4|mysql-8.0|mariadb-11.4|mariadb-10.11
-#     --php 8.3|8.2|8.1
+#     --php 8.3|8.2        (Битрикс этой версии требует PHP 8.2 и выше)
 #     --project имя        префикс контейнеров и томов Docker (по умолчанию — имя папки)
 #     --db-name --db-user --db-password --db-root-password
 #     --http-port --https-port --db-port --mail-port --adminer-port
@@ -118,7 +118,7 @@ choose DBSEL "Какая база данных?" \
 DB_IMAGE="${DBSEL%%-*}:${DBSEL#*-}"
 
 # --- PHP ---
-choose PHP_VERSION "Версия PHP?" 8.3 "8.3" 8.2 "8.2" 8.1 "8.1"
+choose PHP_VERSION "Версия PHP? (Битрикс требует 8.2 и выше)" 8.3 "8.3" 8.2 "8.2"
 
 # --- Проект и параметры БД ---
 [ "$DEFAULTS" = 1 ] || echo

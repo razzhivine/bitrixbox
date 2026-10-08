@@ -23,10 +23,12 @@
 #   bx clean --modules-only только модули, без демо-данных
 #   bx clean --no-leftovers не чистить остатки удалённых модулей
 #   bx clean --module-files удалить файлы неустановленных модулей без вопроса
+#   bx clean --all-modules удалить ВСЕ модули, кроме защищённых, без вопросов (с --yes — совсем без вопросов)
+#   bx clean --drop-tables  при --all-modules удалять и таблицы БД модулей (по умолчанию таблицы сохраняются)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-DRY=0; YES=0; IBLOCKS=""; PAGES=1; CONTENT=1; KEEP=0; MODULES=1; LEFT=1; FILES=ask
+DRY=0; YES=0; IBLOCKS=""; PAGES=1; CONTENT=1; KEEP=0; MODULES=1; LEFT=1; FILES=ask; ALLMOD=0; DROPT=0
 PROTECTED=" main security fileman ui "  # дублируется в scripts/php/modules.php
 while [ $# -gt 0 ]; do
   case $1 in
@@ -38,6 +40,8 @@ while [ $# -gt 0 ]; do
     --no-modules) MODULES=0 ;;
     --no-leftovers) LEFT=0 ;;
     --module-files) FILES=1 ;;
+    --all-modules) ALLMOD=1 ;;
+    --drop-tables) DROPT=1 ;;
     --modules-only) PAGES=0; CONTENT=0 ;;
     --iblock)  IBLOCKS=${2:?нужен список ID}; shift ;;
     *) echo "Неизвестный параметр: $1"; exit 1 ;;
@@ -74,7 +78,15 @@ SAVEDATA_MODULES=" $(docker compose exec -T php sh -c 'cd /var/www/html/bitrix/m
 TODO=() # элементы вида "id:Y|N" (Y = сохранить таблицы)
 if [ "$MODULES" = 1 ]; then
   MODULE_LIST=$(module_php list | awk -F'\t' 'NF==3')
-  if [ "$DRY" = 1 ] || [ "$YES" = 1 ]; then
+  if [ "$ALLMOD" = 1 ] && [ "$DRY" != 1 ]; then
+    ALL_SAVE=Y; [ "$DROPT" = 1 ] && ALL_SAVE=N
+    echo
+    echo "== Модули: удаляю все, кроме защищённых ($(echo "$PROTECTED" | xargs)); таблицы: $([ "$ALL_SAVE" = Y ] && echo сохраняю || echo удаляю) =="
+    while IFS=$'\t' read -r id _name _ver <&3; do
+      [[ $PROTECTED == *" $id "* ]] && continue
+      if [[ $SAVEDATA_MODULES == *" $id "* ]]; then TODO+=("$id:$ALL_SAVE"); else TODO+=("$id:N"); fi
+    done 3<<<"$MODULE_LIST"
+  elif [ "$DRY" = 1 ] || [ "$YES" = 1 ]; then
     echo
     echo "== Установленные модули (в этом режиме не спрашиваю; запустите без --yes и --dry-run) =="
     echo "$MODULE_LIST" | awk -F'\t' -v p="$PROTECTED" '{printf "  %-20s %s (%s)%s\n", $1, $2, $3, (index(p, " " $1 " ") ? "  [защищён]" : "")}'
