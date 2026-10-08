@@ -27,7 +27,7 @@ docker compose version >/dev/null 2>&1 && ok "Docker Compose: $(docker compose v
 
 if [ ! -f .env ]; then warn "Нет файла .env — выполните bx init"; exit 1; fi
 ok "Проект: $(env_get BX_PROJECT), редакция: $(env_get DISTRIB_URL | sed 's#.*/##'), PHP $(env_get PHP_VERSION), БД $(env_get DB_IMAGE)"
-perm=$(stat -f '%Lp' .env 2>/dev/null || stat -c '%a' .env 2>/dev/null)
+perm=$(stat -c '%a' .env 2>/dev/null || stat -f '%Lp' .env 2>/dev/null)   # GNU (Linux), затем BSD (macOS)
 [ "$perm" = 600 ] && ok ".env закрыт для других пользователей (600)" || warn ".env доступен другим пользователям (права $perm) — chmod 600 .env"
 for k in DB_PASSWORD DB_ROOT_PASSWORD; do
   v=$(env_get $k)

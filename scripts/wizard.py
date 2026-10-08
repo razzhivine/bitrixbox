@@ -138,16 +138,17 @@ class Wizard:
             js = m.group(1)
             pct = re.search(r"SetStatus\(\s*'?(\d+)'?", js)
             status = None
-            obj = re.search(r"ajaxForm\.Post\((\{.*?\})\s*,\s*(['\"])(.*?)\2", js, re.S)
+            obj = re.search(r"ajaxForm\.Post\(\s*(\{.*?\})\s*,\s*(['\"])(.*?)\2", js, re.S)
             pos = re.search(r"ajaxForm\.Post\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'", js)
             if obj:
-                for k, v in re.findall(r"""['"]?(\w+)['"]?\s*:\s*['"]([^'"]*)['"]""", obj.group(1)):
-                    data["__wiz_" + k] = v
+                # значения бывают в кавычках ('check,upgrade') и числами без кавычек (0)
+                for k, v1, v2 in re.findall(r"""['"]?(\w+)['"]?\s*:\s*(?:['"]([^'"]*)['"]|(-?\d+))""", obj.group(1)):
+                    data["__wiz_" + k] = v1 if v1 or not v2 else v2
                 status = obj.group(3)
             elif pos:
                 data["__wiz_nextStep"], data["__wiz_nextStepStage"], status = pos.group(1), pos.group(2), pos.group(3)
             else:
-                raise SystemExit("Мастер вернул неожиданный ответ:\n" + page_text(js)[:600])
+                raise SystemExit("Мастер вернул неожиданный ответ (формат не распознан):\n" + js.strip()[:600])
             if status and status != self.last_status:
                 self.last_status = status
                 self.log(f"   [{pct.group(1) + '%' if pct else '...':>4}] {html.unescape(status)}")
@@ -204,8 +205,8 @@ class Wizard:
                 f"(текст шага: {page_text(t)[page_text(t).find('Установка'):][:200]})")
         return post_form(data)
 
-    def run(self):
-        t = self.request("/")
+    def run(self, t=None):
+        t = t if t is not None else self.request("/")
         prev = None
         for _ in range(60):
             forms = self.forms(t)

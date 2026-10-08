@@ -13,7 +13,7 @@ jobs:
     name: Проверка скриптов и конфигов
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: shellcheck
         run: shellcheck -x -S warning bx scripts/*.sh
@@ -39,7 +39,7 @@ jobs:
     needs: lint
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: bx setup без вопросов
         run: ./bx setup --defaults --edition web --http-port 8080 --https-port 8443
@@ -86,7 +86,7 @@ jobs:
     needs: lint
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: bx setup --install --clean (с нуля до очищенного Битрикса)
         run: ./bx setup --defaults --edition standard --install --clean --http-port 8080 --https-port 8443
