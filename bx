@@ -59,6 +59,7 @@ case "$cmd" in
         --install)  DO_INSTALL=1 ;;
         --clean)    DO_CLEAN=1 ;;
         --register) WIZ_ARGS+=(--register) ;;
+        --skip-updates) WIZ_ARGS+=(--skip-updates) ;;
         --reg-name|--reg-surname|--reg-email|--admin-login|--admin-password|--admin-email|--admin-name|--admin-surname|--solution|--demo)
                     WIZ_ARGS+=("$1" "${2:?у $1 нужно значение}"); shift ;;
         --https)    HTTPS_MODE=yes ;;
@@ -108,6 +109,7 @@ MSG
   clean)    ensure_docker; exec bash scripts/clean.sh "$@" ;;
   install)  ensure_docker; run_wizard "$@" ;;
   passwords) ensure_docker; exec bash scripts/passwords.sh "$@" ;;
+  update)   ensure_docker; exec bash scripts/update.sh "$@" ;;
   doctor)   exec bash scripts/doctor.sh ;;
   cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
   cache-clear)
@@ -178,6 +180,7 @@ MSG
   backup       снимок окружения (база, файлы, local); bx backup list — список
   restore      восстановить из снимка (текущее состояние сохранит заранее)
   passwords    bx passwords rotate — сменить пароли БД (root и пользователь) везде: БД, .env, Битрикс
+  update       обновить Битрикс (bx update --check — только показать, что доступно)
   doctor       диагностика окружения: Docker, порты, сайт, HTTPS, Битрикс, диск
   debug        отладка Битрикса: bx debug on | off | status
   restart      перезапустить контейнеры

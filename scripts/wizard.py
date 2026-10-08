@@ -162,6 +162,12 @@ class Wizard:
         data = form_data(form)
         post_form = lambda d: self.request(form["action"] or "/", d)  # noqa: E731
 
+        if self.is_ajax(t) and sid == "update_modules" and a.skip_updates:
+            # то же, что кнопка «Пропустить шаг»: сразу переходим к завершению этого шага мастера
+            self.log(f" - {sid}: пропускаю (--skip-updates)")
+            data["__wiz_nextStep"], data["__wiz_nextStepStage"] = "__finish", "dummy"
+            return post_form(data)
+
         if self.is_ajax(t):
             self.log(f" - {sid}: выполняется")
             return self.run_ajax(form)
@@ -241,6 +247,8 @@ def main():
     ap.add_argument("--reg-name", default="")
     ap.add_argument("--reg-surname", default="")
     ap.add_argument("--reg-email", default="")
+    ap.add_argument("--skip-updates", action="store_true",
+                    help="не ставить обновления в мастере (потом: bx update); установка идёт быстрее")
     ap.add_argument("--solution", choices=sorted(SOLUTIONS), default="corp_furniture")
     ap.add_argument("--demo", choices=["yes", "no"], default="yes",
                     help="ставить демо-данные решения (по умолчанию да). С «no» Битрикс не копирует страницы сайта "
