@@ -64,19 +64,27 @@ if (!$module) {
 // Деинсталляторы читают параметры шага из запроса (и из $_REQUEST, и из объекта запроса D7)
 // и проверяют sessid. По завершении они печатают страницу админки и делают exit,
 // поэтому итог выводим в shutdown-функции строкой BXRESULT.
-global $USER, $step, $savedata, $uninstall;
+global $USER, $step, $savedata, $uninstall, $SAVE_TABLES;
 $USER->Authorize(1);
-$step = 2;
-// как в штатной форме: галочка «сохранить таблицы» присылает savedata=Y, без неё параметра нет
-// (некоторые модули, например seo, считают любое непустое значение, даже 'N', за «сохранить»)
+// Шаг передаём СТРОКОЙ: одни модули читают его как intval($step) / $step == 2, а другие
+// (например conversion) сравнивают строго: $step === '2'. Строка '2' подходит всем.
+$step = '2';
+// «Сохранить таблицы»: у разных модулей разные имена параметра (savedata, save_tables, SAVE_TABLES).
+// Как в штатной форме: галочка присылает значение Y, без неё параметра нет вовсе
+// (некоторые модули, например seo, считают любое непустое значение, даже 'N', за «сохранить»).
 $savedata = $save === 'Y' ? 'Y' : '';
+$SAVE_TABLES = $savedata;
 $uninstall = 'Y';
 $req = [
-    'id' => $id, 'uninstall' => 'Y', 'step' => 2,
+    'id' => $id, 'uninstall' => 'Y', 'step' => '2',
     'sessid' => bitrix_sessid(), 'lang' => LANGUAGE_ID,
 ];
-if ($save === 'Y') $req['savedata'] = 'Y';
-unset($_REQUEST['savedata'], $_POST['savedata'], $_GET['savedata']);
+if ($save === 'Y') {
+    $req['savedata'] = 'Y';
+    $req['save_tables'] = 'Y';
+    $req['SAVE_TABLES'] = 'Y';
+}
+foreach (['savedata', 'save_tables', 'SAVE_TABLES'] as $k) unset($_REQUEST[$k], $_POST[$k], $_GET[$k]);
 $_REQUEST = $_POST = $_GET = array_merge($_REQUEST, $req);
 
 $ctx = \Bitrix\Main\Application::getInstance()->getContext();

@@ -73,7 +73,7 @@ module_php() { # module_php <MODE> [MODULE] [SAVEDATA]
 }
 
 # Модули, у которых деинсталлятор спрашивает «сохранить таблицы?»
-SAVEDATA_MODULES=" $(docker compose exec -T php sh -c 'cd /var/www/html/bitrix/modules && grep -l savedata */install/index.php 2>/dev/null | cut -d/ -f1' </dev/null | tr '\n' ' ')"
+SAVEDATA_MODULES=" $(docker compose exec -T php sh -c 'cd /var/www/html/bitrix/modules && grep -lE "savedata|SAVE_TABLES|save_tables" */install/index.php 2>/dev/null | cut -d/ -f1' </dev/null | tr '\n' ' ')"
 
 TODO=() # элементы вида "id:Y|N" (Y = сохранить таблицы)
 if [ "$MODULES" = 1 ]; then

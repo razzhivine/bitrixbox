@@ -97,8 +97,8 @@ do_restore() {
   echo "== Восстановление из $(basename "$SNAP") =="
 
   echo "  база данных..."
-  docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" 2>/dev/null' </dev/null
-  gunzip -c "$SNAP/db.sql.gz" | docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" 2>/dev/null'
+  docker compose exec -T db sh -c 'M=$(command -v mysql || command -v mariadb); "$M" -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS \`$MYSQL_DATABASE\`; CREATE DATABASE \`$MYSQL_DATABASE\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" 2>/dev/null' </dev/null
+  gunzip -c "$SNAP/db.sql.gz" | docker compose exec -T db sh -c 'M=$(command -v mysql || command -v mariadb); "$M" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" 2>/dev/null'
 
   echo "  файлы сайта..."
   docker compose exec -T -u root php sh -c 'find /var/www/html -mindepth 1 -maxdepth 1 ! -name local -exec rm -rf {} +' </dev/null

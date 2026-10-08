@@ -118,9 +118,9 @@ MSG
     ensure_docker
     # без аргументов — консоль MySQL, с аргументом — выполнить запрос: bx sql "select count(*) from b_user"
     if [ $# -gt 0 ]; then
-      docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" --table -e "$0" 2>&1 | grep -v "Using a password"' "$*" </dev/null
+      docker compose exec -T db sh -c 'M=$(command -v mysql || command -v mariadb); "$M" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" --table -e "$0" 2>&1 | grep -v "Using a password"' "$*" </dev/null
     else
-      docker compose exec db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+      docker compose exec db sh -c 'M=$(command -v mysql || command -v mariadb); "$M" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
     fi
     ;;
   php)      ensure_docker; docker compose exec -u www-data php php "$@" ;;

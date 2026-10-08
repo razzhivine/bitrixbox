@@ -31,7 +31,7 @@ case "${1:-status}" in
     if enabled; then echo "Режим: по расписанию (cron)"; else echo "Режим: на хитах страниц"; fi
     docker compose ps --status running --services </dev/null 2>/dev/null | grep -qx cron \
       && echo "Контейнер cron: работает" || echo "Контейнер cron: не запущен"
-    docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" -N -e "select concat(\"Агентов: \", count(*), \", последний запуск: \", ifnull(max(LAST_EXEC), \"никогда\")) from b_agent where ACTIVE=\"Y\"" 2>/dev/null' </dev/null
+    docker compose exec -T db sh -c 'M=$(command -v mysql || command -v mariadb); "$M" -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" -N -e "select concat(\"Агентов: \", count(*), \", последний запуск: \", ifnull(max(LAST_EXEC), \"никогда\")) from b_agent where ACTIVE=\"Y\"" 2>/dev/null' </dev/null
     ;;
   *) echo "Используйте: bx cron on | off | status"; exit 1 ;;
 esac
