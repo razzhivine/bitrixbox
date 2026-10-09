@@ -49,6 +49,15 @@ $eh = (include $_SERVER['DOCUMENT_ROOT'] . '/bitrix/.settings.php')['exception_h
 if (!empty($eh['debug'])) out('WARN', 'Режим отладки включён (ошибки видны на страницах). Выключить: bx debug off');
 else out('OK', 'Режим отладки выключен');
 
+// 2а. «URL сервера»: пустой даёт письма и абсолютные ссылки без адреса сайта
+$srv = $conn->query("SELECT VALUE FROM b_option WHERE MODULE_ID='main' AND NAME='server_name' AND SITE_ID IS NULL")->fetch();
+$empty = [];
+if (trim((string)($srv['VALUE'] ?? '')) === '') $empty[] = 'главный модуль';
+$rs = $conn->query("SELECT LID FROM b_lang WHERE ACTIVE='Y' AND (SERVER_NAME IS NULL OR SERVER_NAME='')");
+while ($r = $rs->fetch()) $empty[] = 'сайт ' . $r['LID'];
+if ($empty) out('WARN', 'URL сервера не заполнен (' . implode(', ', $empty) . '): ссылки в письмах будут без адреса. Лечится: bx siteurl');
+else out('OK', 'URL сервера заполнен: ' . ($srv['VALUE'] ?? ''));
+
 // 3. агенты: на хитах или по cron, и не застряли ли
 $cronMode = defined('BX_CRONTAB_SUPPORT') && BX_CRONTAB_SUPPORT === true;
 out('INFO', 'Агенты и почтовые события: ' . ($cronMode ? 'по расписанию (cron)' : 'на хитах страниц'));

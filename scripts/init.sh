@@ -14,6 +14,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 BASE=https://www.1c-bitrix.ru/download
+# см. комментарий в scripts/https.sh: переменные портов и паролей не должны утекать в docker compose из окружения оболочки
+export -n HTTP_PORT HTTPS_PORT DB_PORT MAIL_PORT ADMINER_PORT DB_NAME DB_USER DB_PASSWORD DB_ROOT_PASSWORD PHP_VERSION BX_PROJECT 2>/dev/null || true
 DEFAULTS=0; FORCE=0
 EDITION=""; DBSEL=""; PHP_VERSION=""; BX_PROJECT=""
 DB_NAME=""; DB_USER=""; DB_PASSWORD=""; DB_ROOT_PASSWORD=""

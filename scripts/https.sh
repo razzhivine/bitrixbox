@@ -13,6 +13,9 @@ cd "$(dirname "$0")/.."
 CERTS=docker/nginx/certs
 CONF=docker/nginx/https
 
+# HTTP_PORT/HTTPS_PORT могут прийти из окружения оболочки (HTTPS_PORT=… bx …). Наши одноимённые переменные — внутренние:
+# если оставить их экспортированными, docker compose увидит пустое значение вместо порта из .env и откроет порты по умолчанию
+export -n HTTP_PORT HTTPS_PORT 2>/dev/null || true
 OFF=0; DEFAULTS=0; HTTPS_PORT=""; DOMAINS=""; DOMAINS_SET=0; REDIRECT=""
 while [ $# -gt 0 ]; do
   case $1 in
@@ -46,6 +49,7 @@ if [ "$OFF" = 1 ]; then
   docker compose exec -T nginx nginx -s reload </dev/null
   sleep 1   # reload асинхронный: дать старым процессам nginx завершиться
   echo "HTTPS выключен, сайт доступен только по http."
+  bash scripts/siteurl.sh --quiet   # «URL сервера» следует за адресом сайта (порт http / https)
   exit 0
 fi
 
@@ -133,3 +137,4 @@ echo
 echo "Готово: https://localhost:$HTTPS_PORT/"
 [ "$TRUSTED" = 1 ] || echo "(браузер предупредит о сертификате: «Дополнительно → Перейти»)"
 if [[ $REDIRECT =~ ^[yY]$ ]]; then echo "http://localhost:$HTTP_PORT/ теперь перенаправляет на https"; fi
+bash scripts/siteurl.sh --quiet   # «URL сервера» следует за адресом сайта (порт http / https)

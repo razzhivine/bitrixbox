@@ -2,7 +2,7 @@
 // Подготовка перенесённого сайта к работе в BitrixBox. Запускается внутри php-контейнера командами bx import и bx pull.
 // Ядро Битрикса не подключается: до правки настроек оно бы пыталось соединиться с боевой базой и кешем.
 //   MODE=config  настройки на диске: подключение к базе, кеш и сессии в файлах, без SMTP, cookie без secure
-//   MODE=db      настройки в базе: адрес сайта, правила доступа по IP, облачные хранилища только на чтение
+//   MODE=db      настройки в базе: правила доступа по IP, облачные хранилища только на чтение, очередь писем
 //   MODE=admin   задать пароль администратору (ADMIN_LOGIN — какому, иначе первому активному из группы 1)
 // Ожидает переменные DB_NAME, DB_USER, DB_PASSWORD; для db — ещё SITE_HOST (например, localhost:8080).
 // Печатает строки «  - что сделано»; предупреждения начинаются с WARN|, итог admin — ADMIN|логин|пароль.
@@ -119,21 +119,12 @@ if ($mode === 'config') {
 
 if ($mode === 'db') {
     $c = db();
-    $host = getenv('SITE_HOST') ?: 'localhost';
-
     $coll = $c->query("SHOW TABLE STATUS LIKE 'b_option'")->fetch_assoc()['Collation'] ?? '';
     if (stripos($coll, 'cp1251') === 0) {
         warn('база в кодировке windows-1251: BitrixBox рассчитан на UTF-8, возможны «кракозябры» (сайт стоит перевести на UTF-8)');
     }
 
-    $old = $c->query("SELECT VALUE FROM b_option WHERE MODULE_ID='main' AND NAME='server_name' AND SITE_ID IS NULL")->fetch_row()[0] ?? '';
-    $st = $c->prepare("UPDATE b_option SET VALUE=? WHERE MODULE_ID='main' AND NAME='server_name'");
-    $st->bind_param('s', $host); $st->execute();
-    if (column_exists($c, 'b_lang', 'SERVER_NAME')) {
-        $st = $c->prepare("UPDATE b_lang SET SERVER_NAME=? WHERE SERVER_NAME<>''");
-        $st->bind_param('s', $host); $st->execute();
-    }
-    say('адрес сайта: ' . ($old ?: '—') . " → $host (ссылки в письмах)");
+    // адрес сайта («URL сервера») записывает scripts/siteurl.sh (его вызывает import.sh после этого шага)
 
     if (table_exists($c, 'b_sec_iprule')) {
         $c->query("UPDATE b_sec_iprule SET ACTIVE='N' WHERE ACTIVE='Y'");

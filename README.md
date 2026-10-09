@@ -190,6 +190,7 @@ git clone https://github.com/razzhivine/bitrixbox.git shop && cd shop
 | `import <источник>` | перенести существующий сайт: архив Битрикса, папка + `--sql`, `user@host:/путь` по SSH; `--anonymize`, `--upload-proxy`, `--admin-password` |
 | `pull [--files] [--upload]` | обновить локальную копию с сервера (после `import` по SSH); перед этим делает снимок |
 | `anonymize [--dry-run]` | обезличить персональные данные в локальной базе; перед этим делает снимок |
+| `siteurl [--show\|--force\|адрес]` | «URL сервера» Битрикса (главный модуль и каждый сайт): заполняется сам после установки, `bx https`, `bx clean`, `bx import` |
 | `upload-proxy URL [--save]\|off` | недостающие файлы `upload/` брать с боевого сайта |
 | `modules` | модули: `all`, `install <id…>`, `uninstall <id…>`, `required`, `sync` |
 | `migrate` | миграции структуры (sprint.migration): `install`, `add`, `ls`, `status`, `up`, `down`, `run`, остальное как у модуля |
@@ -228,9 +229,9 @@ bx                      единственная команда-диспетче
 docker-compose.yml      сервисы (параметры из .env, имя проекта — BX_PROJECT)
 docker/                 конфиги контейнеров: php/ (Dockerfile, php.ini, msmtprc), nginx/ (сайт, https, сертификаты)
 scripts/                реализация команд: init.sh, https.sh, clean.sh, backup.sh, cron.sh, doctor.sh, passwords.sh, update.sh,
-                        modules.sh, migrate.sh, import.sh, anonymize.sh, upload-proxy.sh, wizard.py;
+                        modules.sh, migrate.sh, import.sh, anonymize.sh, upload-proxy.sh, siteurl.sh, wizard.py;
                         protected-modules.txt — модули, которые не удаляются никогда
-scripts/php/            PHP внутри контейнера: cleanup.php, modules.php, debug.php, cache.php, doctor.php, update.php, import.php, anonymize.php
+scripts/php/            PHP внутри контейнера: cleanup.php, modules.php, debug.php, cache.php, doctor.php, update.php, import.php, anonymize.php, siteurl.php
 scripts/remote/         то, что выполняется на сервере при import/pull по SSH (только чтение)
 tests/                  сквозные проверки (e2e.sh, migrate.sh, import.sh) и тест мастера на записанном диалоге (test_wizard.py)
 .github/workflows/      CI: проверка скриптов и сквозная установка с нуля

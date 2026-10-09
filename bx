@@ -43,7 +43,9 @@ run_wizard() {
   local url; url="http://localhost:$(get HTTP_PORT)"
   [ -f docker/nginx/https/redirect.conf ] && url="https://localhost:$(get HTTPS_PORT)"
   python3 scripts/wizard.py --url "$url" \
-    --db-name "$(get DB_NAME)" --db-user "$(get DB_USER)" --db-password "$(get DB_PASSWORD)" "$@"
+    --db-name "$(get DB_NAME)" --db-user "$(get DB_USER)" --db-password "$(get DB_PASSWORD)" "$@" || return $?
+  # мастер оставляет «URL сервера» пустым: ссылки в письмах и абсолютные адреса были бы без адреса сайта
+  bash scripts/siteurl.sh
 }
 
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
@@ -120,6 +122,7 @@ MSG
   pull)     ensure_docker; exec bash scripts/import.sh --pull "$@" ;;
   anonymize) ensure_docker; exec bash scripts/anonymize.sh "$@" ;;
   upload-proxy) ensure_docker; exec bash scripts/upload-proxy.sh "$@" ;;
+  siteurl)  ensure_docker; exec bash scripts/siteurl.sh "$@" ;;
   doctor)   exec bash scripts/doctor.sh ;;
   cron)     ensure_docker; exec bash scripts/cron.sh "$@" ;;
   cache-clear)
@@ -184,6 +187,7 @@ MSG
   import       перенести существующий сайт: bx import <архив Битрикса | папка --sql дамп | user@host:/путь> [--anonymize] [--upload-proxy URL]
   pull         обновить локальную копию с сервера (после bx import по SSH): база; --files — и файлы
   anonymize    обезличить персональные данные в локальной базе (bx anonymize --dry-run — только показать)
+  siteurl      «URL сервера» Битрикса (main и каждый сайт): bx siteurl [--show | --force | адрес]
   upload-proxy недостающие файлы upload/ брать с боевого сайта: bx upload-proxy https://site.ru [--save] | off
   https        включить HTTPS (bx https --off — выключить)
   clean        очистить демо-данные, остатки и модули (bx clean --dry-run — только план)

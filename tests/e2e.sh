@@ -40,6 +40,19 @@ PHP
 )
 [ "$r" = LOGIN_OK ] && ok "вход администратора через API" || fail "вход администратора: ${r:-нет ответа}"
 
+# «URL сервера»: мастер оставляет его пустым, BitrixBox заполняет адресом сайта (и следит за ним при смене http/https)
+srv() { ./bx siteurl --show 2>/dev/null | tr '\n' ' '; }
+want="main (по умолчанию): localhost:$HTTP_PORT сайт s1: localhost:$HTTP_PORT "
+[ "$(srv)" = "$want" ] && ok "URL сервера после установки: localhost:$HTTP_PORT (main и сайт)" || fail "URL сервера после установки: «$(srv)»"
+if ./bx https --defaults --redirect >/tmp/https.out 2>&1; then
+  want="main (по умолчанию): localhost:$HTTPS_PORT сайт s1: localhost:$HTTPS_PORT "
+  [ "$(srv)" = "$want" ] && ok "URL сервера после редиректа на https: localhost:$HTTPS_PORT" || fail "URL сервера после https: «$(srv)»"
+  ./bx https --off >>/tmp/https.out 2>&1 || { fail "bx https --off завершился с ошибкой"; tail -8 /tmp/https.out | sed 's/^/         /'; }
+  want="main (по умолчанию): localhost:$HTTP_PORT сайт s1: localhost:$HTTP_PORT "
+  [ "$(srv)" = "$want" ] && ok "URL сервера после выключения https: localhost:$HTTP_PORT" || fail "URL сервера после https --off: «$(srv)»"
+  ./bx https --defaults >>/tmp/https.out 2>&1 || { fail "bx https --defaults завершился с ошибкой"; tail -8 /tmp/https.out | sed 's/^/         /'; }
+else fail "bx https --redirect"; tail -8 /tmp/https.out | sed 's/^/         /'; fi
+
 # откат очистки одной командой
 snap=$(./bx backup list | grep before-clean | head -1 | awk '{print $1}')
 if [ -n "$snap" ]; then

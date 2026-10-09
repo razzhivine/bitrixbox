@@ -281,8 +281,10 @@ PHPENV=(-e DB_NAME="$(env_get DB_NAME)" -e DB_USER="$(env_get DB_USER)" -e DB_PA
 WARNS=""
 out=$(docker compose exec -T -u www-data "${PHPENV[@]}" -e MODE=config php php < scripts/php/import.php 2>&1) || { echo "$out"; die "не удалось поправить настройки сайта"; }
 echo "$out" | grep -v '^WARN|'; WARNS+=$(echo "$out" | grep '^WARN|' | cut -d'|' -f2-)$'\n'
-out=$(docker compose exec -T -u www-data "${PHPENV[@]}" -e MODE=db -e SITE_HOST="localhost:$(env_get HTTP_PORT)" php php < scripts/php/import.php 2>&1) || { echo "$out"; die "не удалось поправить настройки в базе"; }
+out=$(docker compose exec -T -u www-data "${PHPENV[@]}" -e MODE=db php php < scripts/php/import.php 2>&1) || { echo "$out"; die "не удалось поправить настройки в базе"; }
 echo "$out" | grep -v '^WARN|'; WARNS+=$(echo "$out" | grep '^WARN|' | cut -d'|' -f2-)$'\n'
+# «URL сервера» (main и каждый сайт) → локальный адрес: ссылки в письмах и абсолютные адреса поведут на копию
+bash scripts/siteurl.sh --force --no-cache | grep -v '^URL сервера:$'
 dc_php sh -c 'rm -rf /var/www/html/bitrix/cache/* /var/www/html/bitrix/managed_cache/* /var/www/html/bitrix/stack_cache/*' </dev/null
 echo "  - кеш очищен"
 echo "  исходные файлы настроек: $KEEP"

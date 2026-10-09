@@ -77,6 +77,7 @@ check "данные перенесены (bxbox_marker=v1)" '[ "$(sql1 "select V
 check "local/ перенесена" 'grep -q marker-local local/php_interface/init.php'
 check "upload перенесён" '[ "$(curl -s "http://localhost:$HTTP_PORT/upload/marker/m.txt")" = marker-upload ]'
 check "адрес сайта заменён на localhost" '[ "$(sql1 "select VALUE from b_option where MODULE_ID=\"main\" and NAME=\"server_name\"")" = "localhost:$HTTP_PORT" ]'
+check "URL сервера сайта заменён на localhost" '[ "$(sql1 "select SERVER_NAME from b_lang limit 1")" = "localhost:$HTTP_PORT" ]'
 check "дамп удалён из bitrix/backup" '! docker compose exec -T php sh -c "ls /var/www/html/bitrix/backup/*.sql" >/dev/null 2>&1'
 check "bitrix/backup закрыт в nginx" '[ "$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:$HTTP_PORT/bitrix/backup/")" = 403 ]'
 check "почта обезличена" '[ "$(sql1 "select count(*) from b_user where EMAIL not like \"%@example.test\"")" = 0 ]'

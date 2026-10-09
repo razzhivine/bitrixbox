@@ -220,6 +220,9 @@ if [ "$LEFT_STAGE" = 1 ]; then
   left_php 0 "$FILES" | grep -a -v '^FILE:'
 fi
 
+# очистка переписывает данные сайта: убеждаемся, что «URL сервера» на месте
+bash scripts/siteurl.sh --quiet
+
 echo
 echo "Готово. Откат ко всему состоянию до очистки (база, файлы сайта, upload, модули, local):"
 echo "  bx restore $(basename "$SNAPSHOT")"
