@@ -39,7 +39,10 @@ run_wizard() {
     return 1
   fi
   command -v python3 >/dev/null || { echo "Для bx install нужен python3"; return 1; }
-  python3 scripts/wizard.py --url "http://localhost:$(get HTTP_PORT)" \
+  # при включённом редиректе http → https мастер сразу идёт по https: на редиректе POST-запросы мастера теряются
+  local url; url="http://localhost:$(get HTTP_PORT)"
+  [ -f docker/nginx/https/redirect.conf ] && url="https://localhost:$(get HTTPS_PORT)"
+  python3 scripts/wizard.py --url "$url" \
     --db-name "$(get DB_NAME)" --db-user "$(get DB_USER)" --db-password "$(get DB_PASSWORD)" "$@"
 }
 

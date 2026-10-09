@@ -44,6 +44,7 @@ if [ "$OFF" = 1 ]; then
   docker compose up -d nginx
   sleep 2   # файловая система Docker Desktop применяет удаление с задержкой
   docker compose exec -T nginx nginx -s reload </dev/null
+  sleep 1   # reload асинхронный: дать старым процессам nginx завершиться
   echo "HTTPS выключен, сайт доступен только по http."
   exit 0
 fi
@@ -126,7 +127,7 @@ docker compose up -d nginx </dev/null          # откроет порт HTTPS, 
 sleep 2   # файловая система Docker Desktop применяет изменения с задержкой
 docker compose exec -T nginx nginx -t </dev/null
 docker compose exec -T nginx nginx -s reload </dev/null   # перечитать конфиг и сертификаты
-sleep 1
+sleep 1   # reload асинхронный: дать старым процессам nginx завершиться
 
 echo
 echo "Готово: https://localhost:$HTTPS_PORT/"

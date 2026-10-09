@@ -8,7 +8,7 @@
 #     --php 8.3|8.2        (Битрикс этой версии требует PHP 8.2 и выше)
 #     --project имя        префикс контейнеров и томов Docker (по умолчанию — имя папки)
 #     --db-name --db-user --db-password --db-root-password
-#     --http-port --https-port --db-port --mail-port --adminer-port
+#     --http-port --https-port --db-port --mail-port --adminer-port   (без флагов — свободные подбираются сами)
 #     --force              перезаписать существующий .env без вопроса
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -132,11 +132,45 @@ ask DB_PASSWORD      "Пароль пользователя БД" "" random
 ask DB_ROOT_PASSWORD "Пароль root в БД"       "" random
 
 # --- Порты ---
-ask HTTP_PORT    "Порт сайта на хосте"  "8080"
-ask HTTPS_PORT   "Порт HTTPS на хосте"  "8443"
-ask DB_PORT      "Порт БД на хосте"     "3306"
-ask MAIL_PORT    "Порт почты (Mailpit)" "8025"
-ask ADMINER_PORT "Порт Adminer"         "8081"
+# Порты, которые уже заняты: их слушает какая-то программа, их забронировали контейнеры Docker других проектов
+# (в том числе остановленные) или они записаны в .env соседних проектов BitrixBox (../*/.env) — после `bx down`
+# контейнеров нет, но при `bx up` проекты бы столкнулись. Этот же проект не считается.
+TAKEN=" $( {
+  docker ps -aq --filter "label=com.docker.compose.project" </dev/null 2>/dev/null | while read -r id; do
+    docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}} {{range $p, $b := .HostConfig.PortBindings}}{{range $b}}{{.HostPort}} {{end}}{{end}}' "$id" 2>/dev/null
+  done
+  for f in ../*/.env; do
+    [ -f "$f" ] && [ "$(cd "$(dirname "$f")" && pwd)" != "$PWD" ] && grep -q '^BX_PROJECT=' "$f" || continue
+    echo "$(grep '^BX_PROJECT=' "$f" | cut -d= -f2) $(grep -E '^(HTTP|HTTPS|DB|MAIL|ADMINER)_PORT=' "$f" | cut -d= -f2 | tr '\n' ' ')"
+  done
+} | awk -v me="$BX_PROJECT" '$1 != me {for (i = 2; i <= NF; i++) print $i}' | sort -u | tr '\n' ' ') "
+port_busy() { [[ $TAKEN == *" $1 "* ]] || (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
+
+# Автоподбор: стандартный набор 8080/8443/3306/8025/8081, а если что-то занято — тот же набор со сдвигом +10, +20 …
+# (порты, заданные флагами, не трогаем)
+OFF=""
+for k in $(seq 0 10 300); do
+  busy=0
+  [ -n "$HTTP_PORT" ]    || ! port_busy $((8080 + k)) || busy=1
+  [ -n "$HTTPS_PORT" ]   || ! port_busy $((8443 + k)) || busy=1
+  [ -n "$DB_PORT" ]      || ! port_busy $((3306 + k)) || busy=1
+  [ -n "$MAIL_PORT" ]    || ! port_busy $((8025 + k)) || busy=1
+  [ -n "$ADMINER_PORT" ] || ! port_busy $((8081 + k)) || busy=1
+  [ "$busy" = 0 ] && { OFF=$k; break; }
+done
+OFF=${OFF:-0}
+if [ "$OFF" != 0 ]; then
+  echo "Стандартные порты заняты (другим сайтом или программой) — беру набор со сдвигом +$OFF."
+fi
+ask HTTP_PORT    "Порт сайта на хосте"  "$((8080 + OFF))"
+ask HTTPS_PORT   "Порт HTTPS на хосте"  "$((8443 + OFF))"
+ask DB_PORT      "Порт БД на хосте"     "$((3306 + OFF))"
+ask MAIL_PORT    "Порт почты (Mailpit)" "$((8025 + OFF))"
+ask ADMINER_PORT "Порт Adminer"         "$((8081 + OFF))"
+for v in HTTP_PORT HTTPS_PORT DB_PORT MAIL_PORT ADMINER_PORT; do
+  flag="--$(echo "${v%_PORT}" | tr 'A-Z_' 'a-z-')-port"
+  if port_busy "${!v}"; then echo "ВНИМАНИЕ: порт ${!v} уже занят — контейнеры могут не запуститься. Задайте другой: $flag"; fi
+done
 
 cat > .env <<EOF
 BX_PROJECT=$BX_PROJECT

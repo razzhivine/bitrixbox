@@ -14,6 +14,7 @@ import json
 import os
 import re
 import secrets
+import ssl
 import sys
 import urllib.error
 import urllib.parse
@@ -111,7 +112,9 @@ class Wizard:
 
     def __init__(self, base, args, record=None):
         self.base, self.args = base.rstrip("/"), args
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        # сертификат локального сайта может быть самоподписанным (без mkcert) — проверку не делаем, это localhost
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()),
+                                                  urllib.request.HTTPSHandler(context=ssl._create_unverified_context()))
         self.last_status = None
         self.record = None
         if record:
